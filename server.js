@@ -13,6 +13,45 @@ const db = new sqlite3.Database("./inventory.db", err => {
   else console.log("Connected to SQLite database.");
 });
 
+// ================= ARCHIVE OLD REQUESTS =================
+function archiveOldRequests() {
+  const now = new Date();
+
+  // 1️⃣ Rejected requests older than 3 days → Archived
+  const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString();
+  db.run(
+    `UPDATE item_requests
+     SET status = 'Archived'
+     WHERE status = 'Rejected' AND request_date <= ?`,
+    [threeDaysAgo],
+    function (err) {
+      if (err) console.error("Error archiving rejected requests:", err);
+      else if (this.changes > 0)
+        console.log(`Archived ${this.changes} rejected requests`);
+    }
+  );
+
+  // 2️⃣ Approved requests older than 5 days → Archived
+  const fiveDaysAgo = new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000).toISOString();
+  db.run(
+    `UPDATE item_requests
+     SET status = 'Archived'
+     WHERE status = 'Approved' AND request_date <= ?`,
+    [fiveDaysAgo],
+    function (err) {
+      if (err) console.error("Error archiving approved requests:", err);
+      else if (this.changes > 0)
+        console.log(`Archived ${this.changes} approved requests`);
+    }
+  );
+}
+
+// Run once at server start
+archiveOldRequests();
+
+// Run every 24 hours (86400000 ms)
+setInterval(archiveOldRequests, 24 * 60 * 60 * 1000);
+
 // ================= USERS TABLE =================
 db.run(`
   CREATE TABLE IF NOT EXISTS users (
