@@ -1,9 +1,11 @@
 // ================= API ENDPOINTS =================
-const BASE_URL = window.location.origin;
+const ip = window.location.hostname; // dynamic IP or hostname
+const port = 3000;
+const BASE_URL = `http://${ip}:${port}`;
 
-const AUTH_API = "http://192.168.100.148:3000/auth";
-const ITEMS_API = "http://192.168.100.148:3000/items";
-const REQUESTS_API = "http://192.168.100.148:3000/requests";
+const AUTH_API = `${BASE_URL}/auth`;
+const ITEMS_API = `${BASE_URL}/items`;
+const REQUESTS_API = `${BASE_URL}/requests`;
 
 // ================= ELEMENTS =================
 const authSection = document.getElementById("auth-section");
@@ -28,6 +30,11 @@ const submitBtn = form.querySelector('button[type="submit"]');
 const searchInput = document.getElementById("search");
 const tableBody = document.querySelector("#inventory-section table tbody");
 
+const exportBtn = document.getElementById("export-csv");
+
+const requestForm = document.getElementById("request-form");
+const requestTableBody = document.querySelector("#request-table tbody");
+
 // ================= STATE =================
 let currentUser = null;
 let items = [];
@@ -46,7 +53,7 @@ toggleAuth.addEventListener("click", (e) => {
     authTitle.textContent = "Login";
     authBtn.textContent = "Login";
     toggleText.textContent = "Don’t have an account?";
-    toggleAuth.textContent = "Register here";a
+    toggleAuth.textContent = "Register here";
   } else {
     authTitle.textContent = "Register";
     authBtn.textContent = "Register";
@@ -62,40 +69,50 @@ authBtn.addEventListener("click", async () => {
 
   if (!username || !position) return alert("Enter username and position");
 
-  if (isLogin) {
-    const res = await fetch(`${AUTH_API}/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, position })
-    });
+  try {
+    if (isLogin) {
+      const res = await fetch(`${AUTH_API}/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, position })
+      });
 
-    const data = await res.json();
-    if (!res.ok) return alert(data.message);
+      const data = await res.json();
+      if (!res.ok) return alert(data.message);
 
-    currentUser = data.user;
-    authSection.style.display = "none";
-    inventorySection.style.display = "flex";
+      currentUser = data.user;
 
-    fetchInventory();
-    fetchRequests();
-  } else {
-    const res = await fetch(`${AUTH_API}/register`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, position })
-    });
+      // ✅ Show the logged-in username
+      document.getElementById("welcome-user").textContent = `Welcome, ${currentUser.username}!`;
 
-    const data = await res.json();
-    if (!res.ok) return alert(data.message);
+      authSection.style.display = "none";
+      inventorySection.style.display = "flex";
 
-    alert("Registration successful!");
-    isLogin = true;
-    authTitle.textContent = "Login";
-    authBtn.textContent = "Login";
-    toggleText.textContent = "Don’t have an account?";
-    toggleAuth.textContent = "Register here";
+      fetchInventory();
+      fetchRequests();
+    } else {
+      const res = await fetch(`${AUTH_API}/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, position })
+      });
+
+      const data = await res.json();
+      if (!res.ok) return alert(data.message);
+
+      alert("Registration successful!");
+      isLogin = true;
+      authTitle.textContent = "Login";
+      authBtn.textContent = "Login";
+      toggleText.textContent = "Don’t have an account?";
+      toggleAuth.textContent = "Register here";
+    }
+  } catch (err) {
+    console.error(err);
+    alert("Error connecting to server: " + err.message);
   }
 });
+
 
 // ================= LOGOUT =================
 logoutBtn.addEventListener("click", () => {
@@ -114,6 +131,8 @@ logoutBtn.addEventListener("click", () => {
   authUsername.value = "";
   authPosition.value = "";
 
+  document.getElementById("welcome-user").textContent = "";
+
   inventorySection.style.display = "none";
   authSection.style.display = "flex";
 
@@ -129,6 +148,7 @@ async function fetchInventory() {
     renderInventory();
   } catch (err) {
     console.error(err);
+    alert("Failed to fetch inventory: " + err.message);
   }
 }
 
@@ -140,7 +160,7 @@ form.addEventListener("submit", async e => {
   const itemData = {
     name: itemName.value.trim(),
     brand: itemBrand.value.trim(),
-    serialNumber: itemSerialNumber.value.trim(), // FIXED
+    serialNumber: itemSerialNumber.value.trim(),
     date_added: itemDate.value,
     added_by: currentUser.username
   };
@@ -151,25 +171,28 @@ form.addEventListener("submit", async e => {
   const url = editingItemId ? `${ITEMS_API}/${editingItemId}` : ITEMS_API;
   const method = editingItemId ? "PUT" : "POST";
 
-  await fetch(url, {
-    method,
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(itemData)
-  });
+  try {
+    await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(itemData)
+    });
 
-  editingItemId = null;
-  submitBtn.textContent = "Add Item";
-  form.reset();
+    editingItemId = null;
+    submitBtn.textContent = "Add Item";
+    form.reset();
 
-  fetchInventory();
+    fetchInventory();
+  } catch (err) {
+    console.error(err);
+    alert("Error saving item: " + err.message);
+  }
 });
 
-// ================= EXPORT CSV FRONTEND =================
-const exportBtn = document.getElementById("export-csv");
-
+// ================= EXPORT CSV =================
 exportBtn?.addEventListener("click", async () => {
   try {
-    const res = await fetch("http://localhost:3000/items/export");
+    const res = await fetch(`${BASE_URL}/items/export`);
     if (!res.ok) throw new Error("Failed to export CSV");
 
     const blob = await res.blob();
@@ -187,7 +210,6 @@ exportBtn?.addEventListener("click", async () => {
     alert("Error exporting CSV: " + err.message);
   }
 });
-
 
 // ================= RENDER INVENTORY =================
 function renderInventory() {
@@ -210,11 +232,10 @@ function renderInventory() {
   pageItems.forEach(item => {
     const tr = document.createElement("tr");
 
-    // Show Edit/Delete **only if current user is IT and added this item**
-    const canEditDelete = currentUser?.position === "IT";
+    const canEditDelete = currentUser?.position === "IT" && item.added_by === currentUser.username;
     const actionContent = canEditDelete
       ? `<button class="edit">Edit</button>
-         <button class="delete">Delete</button>`
+         <button class="delete">Delete</button>` 
       : "";
 
     tr.innerHTML = `
@@ -246,13 +267,12 @@ function renderInventory() {
     tableBody.appendChild(tr);
   });
 
-  // ================= PAGINATION INFO =================
+  // Pagination info
   document.getElementById("page-info").textContent =
     `Page ${currentPage} of ${totalPages}`;
   document.getElementById("prev-page").disabled = currentPage <= 1;
   document.getElementById("next-page").disabled = currentPage >= totalPages;
 
-  // ================= ENABLE / DISABLE INVENTORY FORM =================
   const isIT = currentUser?.position === "IT";
   itemName.disabled = !isIT;
   itemBrand.disabled = !isIT;
@@ -268,7 +288,6 @@ document.getElementById("prev-page")?.addEventListener("click", () => {
     renderInventory();
   }
 });
-
 document.getElementById("next-page")?.addEventListener("click", () => {
   const search = (searchInput.value || "").toLowerCase();
   const filtered = items.filter(i =>
@@ -290,11 +309,7 @@ searchInput?.addEventListener("input", () => {
   renderInventory();
 });
 
-
 // ================= REQUESTS =================
-const requestForm = document.getElementById("request-form");
-const requestTableBody = document.querySelector("#request-table tbody");
-
 async function fetchRequests() {
   try {
     const res = await fetch(REQUESTS_API);
@@ -341,20 +356,24 @@ async function fetchRequests() {
 
   } catch (err) {
     console.error(err);
+    alert("Failed to fetch requests: " + err.message);
   }
 }
 
 async function updateRequestStatus(id, status) {
-  if (currentUser?.position !== "Manager")
-    return alert("Only managers can update");
+  if (currentUser?.position !== "Manager") return alert("Only managers can update");
 
-  await fetch(`${REQUESTS_API}/${id}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ status })
-  });
-
-  fetchRequests();
+  try {
+    await fetch(`${REQUESTS_API}/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status })
+    });
+    fetchRequests();
+  } catch (err) {
+    console.error(err);
+    alert("Failed to update request: " + err.message);
+  }
 }
 
 // ================= ADD REQUEST =================
@@ -373,12 +392,17 @@ requestForm?.addEventListener("submit", async e => {
   if (!data.item_name || !data.brand || !data.quantity || !data.reason)
     return alert("All fields required");
 
-  await fetch(REQUESTS_API, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data)
-  });
+  try {
+    await fetch(REQUESTS_API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    });
 
-  requestForm.reset();
-  fetchRequests();
+    requestForm.reset();
+    fetchRequests();
+  } catch (err) {
+    console.error(err);
+    alert("Failed to add request: " + err.message);
+  }
 });
