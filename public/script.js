@@ -6,6 +6,7 @@ const BASE_URL = `http://${ip}:${port}`;
 const AUTH_API = `${BASE_URL}/auth`;
 const ITEMS_API = `${BASE_URL}/items`;
 const REQUESTS_API = `${BASE_URL}/requests`;
+const ARCHIVE_API = `${BASE_URL}/requests/archived`;
 
 // ================= ELEMENTS =================
 const authSection = document.getElementById("auth-section");
@@ -406,3 +407,52 @@ requestForm?.addEventListener("submit", async e => {
     alert("Failed to add request: " + err.message);
   }
 });
+
+// ================= ARCHIVED TABLE =================
+const viewArchiveBtn = document.getElementById("viewArchiveBtn");
+const backToRequestsBtn = document.getElementById("backToRequestsBtn");
+
+viewArchiveBtn?.addEventListener("click", loadArchive);
+backToRequestsBtn?.addEventListener("click", loadRequests);
+
+// Load archived requests
+async function loadArchive() {
+  try {
+    const res = await fetch(ARCHIVE_API);
+    const data = await res.json();
+
+    requestTableBody.innerHTML = "";
+
+    data.forEach(r => {
+      const tr = document.createElement("tr");
+
+      tr.innerHTML = `
+        <td>${r.item_name}</td>
+        <td>${r.brand}</td>
+        <td>${r.quantity}</td>
+        <td>${r.reason}</td>
+        <td>${r.requested_by}</td>
+        <td>${new Date(r.request_date).toLocaleDateString()}</td>
+        <td>${r.status}</td>
+      `;
+
+      requestTableBody.appendChild(tr);
+    });
+
+    // switch buttons
+    viewArchiveBtn.classList.add("d-none");
+    backToRequestsBtn.classList.remove("d-none");
+
+  } catch (err) {
+    console.error(err);
+    alert("Failed to load archive: " + err.message);
+  }
+}
+
+// Back to normal requests
+function loadRequests() {
+  fetchRequests();
+  viewArchiveBtn.classList.remove("d-none");
+  backToRequestsBtn.classList.add("d-none");
+}
+
