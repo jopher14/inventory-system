@@ -95,6 +95,8 @@ authBtn.addEventListener("click", async () => {
       authSection.style.display = "none";
       inventorySection.style.display = "flex";
 
+      handleArchiveVisibility();
+
       fetchInventory();
       fetchRequests();
 
@@ -416,16 +418,24 @@ requestForm?.addEventListener("submit", async e => {
 });
 
 // ================= ARCHIVED TABLE =================
-const viewArchiveBtn = document.getElementById("viewArchiveBtn");
-const backToRequestsBtn = document.getElementById("backToRequestsBtn");
+function handleArchiveVisibility() {
+  const viewArchiveBtn = document.getElementById("viewArchiveBtn");
+  const backToRequestsBtn = document.getElementById("backToRequestsBtn");
 
-if (currentUser.position === "Audit") {
-  viewArchiveBtn.classList.add("d-none");
-  backToRequestsBtn.classList.add("d-none");
-} else {
-  viewArchiveBtn.classList.remove("d-none");
+  if (!currentUser) return;
+
+  const isAudit = currentUser.position === "Audit";
+
+  if (isAudit) {
+    viewArchiveBtn?.classList.add("d-none");
+    backToRequestsBtn?.classList.add("d-none");
+  } else {
+    viewArchiveBtn?.classList.remove("d-none");
+  }
 }
 
+const viewArchiveBtn = document.getElementById("viewArchiveBtn");
+const backToRequestsBtn = document.getElementById("backToRequestsBtn");
 
 viewArchiveBtn?.addEventListener("click", loadArchive);
 backToRequestsBtn?.addEventListener("click", loadRequests);
