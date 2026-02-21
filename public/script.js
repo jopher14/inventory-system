@@ -34,7 +34,7 @@ const tableBody = document.querySelector("#inventory-section table tbody");
 const exportBtn = document.getElementById("export-csv");
 
 const requestForm = document.getElementById("request-form");
-const requestTableBody = document.querySelector("#request-table tbody");
+const requestTableBody = document.getElementById("request-table-body");
 
 // ================= STATE =================
 let currentUser = null;
@@ -233,7 +233,10 @@ function renderInventory() {
   pageItems.forEach(item => {
     const tr = document.createElement("tr");
 
-    const canEditDelete = currentUser?.position === "IT" && item.added_by === currentUser.username;
+    const isAdmin = currentUser?.position === "Admin";
+    const isITOwner = currentUser?.position === "IT" && item.added_by === currentUser.username;
+
+    const canEditDelete = isAdmin || isITOwner;
     const actionContent = canEditDelete
       ? `<button class="edit">Edit</button>
          <button class="delete">Delete</button>` 
@@ -274,7 +277,7 @@ function renderInventory() {
   document.getElementById("prev-page").disabled = currentPage <= 1;
   document.getElementById("next-page").disabled = currentPage >= totalPages;
 
-  const isIT = currentUser?.position === "IT";
+  const isIT = currentUser?.position === "IT" || currentUser?.position === "Admin";
   itemName.disabled = !isIT;
   itemBrand.disabled = !isIT;
   itemSerialNumber.disabled = !isIT;
@@ -314,46 +317,47 @@ searchInput?.addEventListener("input", () => {
 async function fetchRequests() {
   try {
     const res = await fetch(REQUESTS_API);
-    const requests = await res.json();
+    if (!res.ok) throw new Error("Failed to fetch requests");
 
+    const requests = await res.json();
     requestTableBody.innerHTML = "";
 
-    requests.forEach(r => {
+    const canApprove =
+      currentUser?.position === "Admin" ||
+      currentUser?.position === "Manager";
+
+    requests.forEach(request => {
       const tr = document.createElement("tr");
 
-      let actionContent = r.status;
+      let actionContent = request.status;
 
-      if (currentUser?.position === "Manager" && r.status === "Pending") {
+      if (canApprove && request.status === "Pending") {
         actionContent = `
-          <button class="approve-btn" data-id="${r.id}">Approve</button>
-          <button class="reject-btn" data-id="${r.id}">Reject</button>
+          <button class="btn btn-success btn-sm action-btn"
+                  data-id="${request.id}"
+                  data-action="Approved">
+            Approve
+          </button>
+          <button class="btn btn-danger btn-sm action-btn"
+                  data-id="${request.id}"
+                  data-action="Rejected">
+            Reject
+          </button>
         `;
       }
 
       tr.innerHTML = `
-        <td>${r.item_name}</td>
-        <td>${r.brand}</td>
-        <td>${r.quantity}</td>
-        <td>${r.reason}</td>
-        <td>${r.requested_by}</td>
-        <td>${new Date(r.request_date).toLocaleDateString()}</td>
+        <td>${request.item_name}</td>
+        <td>${request.brand}</td>
+        <td>${request.quantity}</td>
+        <td>${request.reason}</td>
+        <td>${request.requested_by}</td>
+        <td>${new Date(request.request_date).toLocaleDateString()}</td>
         <td>${actionContent}</td>
       `;
 
       requestTableBody.appendChild(tr);
     });
-
-    document.querySelectorAll(".approve-btn").forEach(btn =>
-      btn.addEventListener("click", () =>
-        updateRequestStatus(btn.dataset.id, "Approved")
-      )
-    );
-
-    document.querySelectorAll(".reject-btn").forEach(btn =>
-      btn.addEventListener("click", () =>
-        updateRequestStatus(btn.dataset.id, "Rejected")
-      )
-    );
 
   } catch (err) {
     console.error(err);
@@ -361,21 +365,16 @@ async function fetchRequests() {
   }
 }
 
-async function updateRequestStatus(id, status) {
-  if (currentUser?.position !== "Manager") return alert("Only managers can update");
+requestTableBody.addEventListener("click", (e) => {
+  const button = e.target.closest(".action-btn");
+  if (!button) return;
 
-  try {
-    await fetch(`${REQUESTS_API}/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status })
-    });
-    fetchRequests();
-  } catch (err) {
-    console.error(err);
-    alert("Failed to update request: " + err.message);
-  }
-}
+  const id = button.dataset.id;
+  const status = button.dataset.action;
+
+  updateRequestStatus(id, status);
+});
+
 
 // ================= ADD REQUEST =================
 requestForm?.addEventListener("submit", async e => {
@@ -411,6 +410,14 @@ requestForm?.addEventListener("submit", async e => {
 // ================= ARCHIVED TABLE =================
 const viewArchiveBtn = document.getElementById("viewArchiveBtn");
 const backToRequestsBtn = document.getElementById("backToRequestsBtn");
+
+if (currentUser.position === "Audit") {
+  viewArchiveBtn.classList.add("d-none");
+  backToRequestsBtn.classList.add("d-none");
+} else {
+  viewArchiveBtn.classList.remove("d-none");
+}
+
 
 viewArchiveBtn?.addEventListener("click", loadArchive);
 backToRequestsBtn?.addEventListener("click", loadRequests);
