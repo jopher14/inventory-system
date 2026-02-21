@@ -2,6 +2,7 @@ const express = require("express");
 const sqlite3 = require("sqlite3").verbose();
 const cors = require("cors");
 const path = require("path");
+const bcrypt = require("bcrypt");
 
 const app = express();
 const PORT = 3000;
@@ -27,6 +28,7 @@ db.serialize(() => {
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT UNIQUE,
+      password TEXT,
       position TEXT
     )
   `);
@@ -75,41 +77,57 @@ db.serialize(() => {
 // =====================================================
 // AUTH
 // =====================================================
-app.post("/auth/register", (req, res) => {
-  const { username, position } = req.body;
+app.post("/auth/register", async (req, res) => {
+  const { username, password, position } = req.body;
 
-  if (!username || !position)
+  if (!username || !password || !position)
     return res.status(400).json({ error: "Missing fields" });
 
-  db.run(
-    "INSERT INTO users (username, position) VALUES (?, ?)",
-    [username.trim(), position.trim()],
-    function (err) {
-      if (err) return res.status(400).json({ error: "Username already exists" });
+  try {
+    const hashedPassword = await bcrypt.hash(password, 10); // 10 salt rounds
 
-      res.json({
-        message: "Registered successfully",
-        user: { id: this.lastID, username, position }
-      });
-    }
-  );
+    db.run(
+      "INSERT INTO users (username, password, position) VALUES (?, ?, ?)",
+      [username.trim(), hashedPassword, position.trim()],
+      function (err) {
+        if (err)
+          return res.status(400).json({ error: "Username already exists" });
+
+        res.json({
+          message: "Registered successfully",
+          user: { id: this.lastID, username, position }
+        });
+      }
+    );
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 
 app.post("/auth/login", (req, res) => {
-  const { username, position } = req.body;
+  const { username, password, position } = req.body;
 
-  if (!username || !position)
+  if (!username || !password || !position)
     return res.status(400).json({ error: "Missing fields" });
 
   db.get(
     "SELECT * FROM users WHERE username = ? AND position = ?",
     [username.trim(), position.trim()],
-    (err, user) => {
-      if (err) return res.status(500).json({ error: err.message });
-      if (!user) return res.status(401).json({ error: "Invalid credentials" });
+    async (err, user) => {
+      if (err)
+        return res.status(500).json({ error: err.message });
 
-      res.json({ user });   // ⭐ always return inside user
+      if (!user)
+        return res.status(401).json({ error: "Invalid credentials" });
+
+      const match = await bcrypt.compare(password, user.password);
+
+      if (!match)
+        return res.status(401).json({ error: "Invalid credentials" });
+
+      res.json({ user });
     }
   );
 });

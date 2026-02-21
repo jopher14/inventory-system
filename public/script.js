@@ -17,6 +17,7 @@ const toggleText = document.getElementById("toggle-text");
 const inventorySection = document.getElementById("inventory-section");
 
 const authUsername = document.getElementById("auth-username");
+const authPassword = document.getElementById("auth-password");
 const authPosition = document.getElementById("auth-position");
 
 const logoutBtn = document.getElementById("logout-btn");
@@ -62,44 +63,50 @@ toggleAuth.addEventListener("click", (e) => {
     toggleAuth.textContent = "Back to login";
   }
 });
+authUsername.value = "";
+authPassword.value = "";
+authPosition.value = "";
 
 // ================= AUTH SUBMIT =================
 authBtn.addEventListener("click", async () => {
   const username = authUsername.value.trim();
+  const password = authPassword.value.trim();
   const position = authPosition.value;
 
-  if (!username || !position) return alert("Enter username and position");
+  if (!username || !password || !position)
+    return alert("Enter username, password and position");
 
   try {
     if (isLogin) {
       const res = await fetch(`${AUTH_API}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, position })
+        body: JSON.stringify({ username, password, position })
       });
 
       const data = await res.json();
-      if (!res.ok) return alert(data.message);
+      if (!res.ok) return alert(data.error || data.message);
 
       currentUser = data.user;
 
-      // ✅ Show the logged-in username
-      document.getElementById("welcome-user").textContent = `Welcome, ${currentUser.username}!`;
+      document.getElementById("welcome-user").textContent =
+        `Welcome, ${currentUser.username}!`;
 
       authSection.style.display = "none";
       inventorySection.style.display = "flex";
 
       fetchInventory();
       fetchRequests();
+
     } else {
       const res = await fetch(`${AUTH_API}/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, position })
+        body: JSON.stringify({ username, password, position })
       });
 
       const data = await res.json();
-      if (!res.ok) return alert(data.message);
+      if (!res.ok) return alert(data.error || data.message);
 
       alert("Registration successful!");
       isLogin = true;
@@ -130,6 +137,7 @@ logoutBtn.addEventListener("click", () => {
   requestTableBody.innerHTML = "";
 
   authUsername.value = "";
+  authPassword.value = "";
   authPosition.value = "";
 
   document.getElementById("welcome-user").textContent = "";
