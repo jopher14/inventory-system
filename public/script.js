@@ -396,9 +396,14 @@ requestForm.addEventListener("submit", async e => {
 // ARCHIVE
 // =====================================================
 function handleArchiveVisibility() {
-  const hidden = roles.isAudit();
-  viewArchiveBtn.classList.toggle("d-none", hidden);
-  backToRequestsBtn.classList.toggle("d-none", hidden);
+  if (roles.isAudit()) {
+    viewArchiveBtn.classList.add("d-none");
+  } else {
+    viewArchiveBtn.classList.remove("d-none");
+  }
+
+  // Always hide back button initially
+  backToRequestsBtn.classList.add("d-none");
 }
 
 viewArchiveBtn.addEventListener("click", async () => {
