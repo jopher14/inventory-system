@@ -45,6 +45,7 @@ const itemName = $("item-name");
 const itemBrand = $("item-brand");
 const itemSerialNumber = $("item-serial-number");
 const itemDate = $("item-date");
+const employeeUser = $("employee-user");
 const submitBtn = form.querySelector("button[type='submit']");
 
 const searchInput = $("search");
@@ -233,7 +234,8 @@ form.addEventListener("submit", async e => {
     brand: itemBrand.value.trim(),
     serialNumber: itemSerialNumber.value.trim(),
     date_added: itemDate.value,
-    added_by: currentUser.username
+    added_by: currentUser.username,
+    employeeUser: employeeUser.value.trim()
   };
   if (Object.values(data).some(v => !v)) return alert("All fields required");
 
@@ -281,6 +283,7 @@ function renderInventory() {
       <td>${item.serialNumber}</td>
       <td>${item.date_added}</td>
       <td>${item.added_by}</td>
+      <td>${item.employeeUser}
       <td>${actions}</td>
     `;
     if (roles.canEditItem(item)) {

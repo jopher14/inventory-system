@@ -38,9 +38,10 @@ db.serialize(() => {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT,
       brand TEXT,
-      serial_number TEXT UNIQUE,
+      serialNumber TEXT UNIQUE,
       date_added TEXT,
-      added_by TEXT
+      added_by TEXT,
+      employeeUser TEXT
     )
   `);
 
@@ -145,15 +146,15 @@ app.get("/items", (req, res) => {
 
 
 app.post("/items", (req, res) => {
-  const { name, brand, serial_number, date_added, added_by } = req.body;
+  const { name, brand, serialNumber, date_added, added_by, employeeUser } = req.body;
 
-  if (!name || !brand || !serial_number || !date_added || !added_by)
+  if (!name || !brand || !serialNumber || !date_added || !added_by)
     return res.status(400).json({ error: "Missing fields" });
 
   db.run(
-    `INSERT INTO inventory (name, brand, serial_number, date_added, added_by)
-     VALUES (?, ?, ?, ?, ?)`,
-    [name, brand, serial_number, date_added, added_by],
+    `INSERT INTO inventory (name, brand, serialNumber, date_added, added_by, employeeUser)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [name, brand, serialNumber, date_added, added_by, employeeUser],
     err => {
       if (err) return res.status(500).json({ error: err.message });
       res.json({ message: "Item added" });
