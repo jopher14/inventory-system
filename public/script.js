@@ -171,19 +171,48 @@ authBtn.addEventListener("click", async () => {
 // =====================================================
 // LOGOUT
 // =====================================================
-logoutBtn.addEventListener("click", () => {
-  currentUser = null;
-  items = [];
-  editingItemId = null;
-  currentPage = 1;
-  tableBody.innerHTML = "";
-  requestTableBody.innerHTML = "";
-  form.reset();
-  requestForm.reset();
-  resetAuthFields();
-  welcomeUser.textContent = "";
-  showAuth();
-  addItemBtn.classList.add("d-none");
+document.addEventListener("DOMContentLoaded", () => {
+  const logoutBtn = document.getElementById("logout-btn");
+  const form = document.getElementById("inventory-form");
+  const requestForm = document.getElementById("request-form");
+
+  if (!logoutBtn) return console.warn("Logout button not found!");
+
+  logoutBtn.addEventListener("click", () => {
+    // Reset state
+    currentUser = null;
+    items = [];
+    editingItemId = null;
+    currentPage = 1;
+    isLogin = true;
+
+    // Reset forms
+    if (form) form.reset();
+    if (requestForm) requestForm.reset();
+    resetAuthFields();
+    if (searchInput) searchInput.value = "";
+
+    // Clear tables
+    if (tableBody) tableBody.innerHTML = "";
+    if (requestTableBody) requestTableBody.innerHTML = "";
+
+    // Reset UI
+    showAuth();
+    if (addItemBtn) addItemBtn.classList.add("d-none");
+    if (welcomeUser) welcomeUser.textContent = "";
+
+    // Reset auth form to login mode
+    if (authTitle) authTitle.textContent = "Login";
+    if (authBtn) authBtn.textContent = "Login";
+    if (toggleText) toggleText.textContent = "Don’t have an account?";
+    if (toggleAuth) toggleAuth.textContent = "Register here";
+
+    // Close modals
+    closeModal("inventoryModal");
+    closeModal("requestModal");
+
+    console.log("Logout successful");
+  });
 });
 
 // =====================================================
