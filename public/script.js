@@ -439,10 +439,16 @@ requestForm.addEventListener("submit", async (e) => {
     return alert("All fields required");
 
   await api.send(API.REQUESTS, "POST", data);
+
   requestForm.reset();
+
+  // ✅ Close Modal
+  const modalElement = document.getElementById("requestModal");
+  const modalInstance = bootstrap.Modal.getInstance(modalElement);
+  if (modalInstance) modalInstance.hide();
+
   fetchRequests();
 });
-
 
 // =====================================================
 // ARCHIVE
