@@ -30,6 +30,7 @@ const $ = (id) => document.getElementById(id);
 
 const authSection = $("auth-section");
 const inventorySection = $("inventory-section");
+const addItemBtn = $("addItemBtn");
 
 const authTitle = $("auth-title");
 const authBtn = $("auth-btn");
@@ -115,6 +116,14 @@ function showAuth() {
   authSection.classList.remove("d-none");
 }
 
+function handleAddItemVisibility() {
+  if (roles.isAdmin() || roles.isIT()) {
+    addItemBtn.classList.remove("d-none");
+  } else {
+    addItemBtn.classList.add("d-none");
+  }
+}
+
 
 // =====================================================
 // AUTH
@@ -154,6 +163,7 @@ authBtn.addEventListener("click", async () => {
 
       showInventory();
       handleArchiveVisibility();
+      handleAddItemVisibility();
 
       await fetchInventory();
       await fetchRequests();
@@ -194,6 +204,7 @@ logoutBtn.addEventListener("click", () => {
 
   welcomeUser.textContent = "";
   showAuth();
+  addItemBtn.classList.add("d-none");
 });
 
 
