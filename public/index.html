@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Inventory System</title>
 
   <!-- Bootstrap -->
@@ -11,89 +11,126 @@
 </head>
 
 <body>
-  <div class="container-fluid py-4">
+  <div class="container py-4">
+
     <h1 class="text-center mb-4">Inventory System</h1>
 
-    <!-- ================= AUTH ================= -->
-    <div id="auth-section" class="card p-4 mb-4 mx-auto" style="max-width:400px;">
-      <h3 id="auth-title" class="mb-3 text-center">Login</h3>
+    <!-- ================= AUTH SECTION ================= -->
+    <section id="auth-section" class="card p-4 mx-auto mb-4 auth-card">
+      <h3 id="auth-title" class="text-center mb-3">Login</h3>
 
-      <input type="text" 
-            id="auth-username" 
-            class="form-control mb-2" 
-            placeholder="Username" 
-            required />
+      <div class="mb-2">
+        <input id="auth-username" class="form-control" placeholder="Username" required />
+      </div>
 
-      <input type="password" 
-            id="auth-password" 
-            class="form-control mb-2" 
-            placeholder="Password" 
-            required />
+      <div class="mb-2">
+        <input type="password" id="auth-password" class="form-control" placeholder="Password" required />
+      </div>
 
-      <select id="auth-position" class="form-select mb-3" required>
-        <option value="">Select Position</option>
-        <option value="Admin">Admin</option>
-        <option value="Audit">Audit</option>
-        <option value="Manager">Manager</option>
-        <option value="IT">IT</option>
-      </select>
+      <div class="mb-3">
+        <select id="auth-position" class="form-select" required>
+          <option value="">Select Position</option>
+          <option>Admin</option>
+          <option>Audit</option>
+          <option>Manager</option>
+          <option>IT</option>
+        </select>
+      </div>
 
       <button id="auth-btn" class="btn btn-primary w-100 mb-2">Login</button>
 
-      <p class="text-center mt-2">
+      <p class="text-center small">
         <span id="toggle-text">Don’t have an account?</span>
         <a href="#" id="toggle-auth">Register here</a>
       </p>
-    </div>
+    </section>
 
-    <!-- ================= INVENTORY ================= -->
-    <div id="inventory-section" style="display:none;">
+    <!-- ================= INVENTORY SECTION ================= -->
+    <section id="inventory-section" class="d-none">
 
-      <div class="mb-3">
+      <div class="d-flex justify-content-between align-items-center mb-3">
         <span id="welcome-user" class="fw-bold"></span>
+        <button id="logout-btn" class="btn btn-danger btn-sm">Logout</button>
       </div>
 
-      <!-- Inventory Form -->
-      <form id="inventory-form" class="row g-2 mb-3 align-items-end">
-        <div class="col-md-2">
-          <input type="text" id="item-name" class="form-control" placeholder="Item Name" required />
-        </div>
+      <!-- Inventory Controls -->
+      <div class="card p-3 mb-4">
+        <hr>
 
-        <div class="col-md-2">
-          <input type="text" id="item-brand" class="form-control" placeholder="Brand" required />
+        <div class="d-flex gap-2">
+          <input id="search" class="form-control" placeholder="Search..." />
+          <button id="export-csv" class="btn btn-outline-primary">Export</button>
         </div>
+      </div>
 
-        <div class="col-md-2">
-          <input type="text" id="item-serial-number" class="form-control" placeholder="Serial Number" required />
-        </div>
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <button 
+          class="btn btn-success"
+          data-bs-toggle="modal"
+          data-bs-target="#inventoryModal">
+          Add Item
+        </button>
+      </div>
 
-        <div class="col-md-2">
-          <input type="date" id="item-date" class="form-control" required />
-        </div>
+      <!-- ================= ADD ITEM MODAL ================= -->
+      <div class="modal fade" id="inventoryModal" tabindex="-1">
+        <div class="modal-dialog">
+          <div class="modal-content">
 
-        <div class="col-md-2">
-          <button type="submit" class="btn btn-success w-100">Add Item</button>
-        </div>
+            <div class="modal-header">
+              <h5 class="modal-title">Add Inventory Item</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
 
-        <div class="col-md-2 d-flex gap-1">
-          <input type="text" id="search" class="form-control" placeholder="Search items..." />
-          <button type="button" id="export-csv" class="btn btn-outline-primary">Export</button>
-        </div>
+            <form id="inventory-form">
+              <div class="modal-body">
 
-        <div class="col-12 mt-2">
-          <button type="button" id="logout-btn" class="btn btn-danger">Logout</button>
+                <div class="mb-3">
+                  <label class="form-label">Item Name</label>
+                  <input id="item-name" class="form-control" required>
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label">Brand</label>
+                  <input id="item-brand" class="form-control" required>
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label">Serial Number</label>
+                  <input id="item-serial-number" class="form-control" required>
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label">Date Added</label>
+                  <input type="date" id="item-date" class="form-control" required>
+                </div>
+
+              </div>
+
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                  Cancel
+                </button>
+                <button type="submit" class="btn btn-success">
+                  Save Item
+                </button>
+              </div>
+            </form>
+
+          </div>
         </div>
-      </form>
+      </div>
+
 
       <!-- Inventory Table -->
-      <div class="table-responsive mb-4">
+      <div class="table-responsive mb-3">
         <table class="table table-hover align-middle">
           <thead class="table-dark">
             <tr>
               <th>Name</th>
               <th>Brand</th>
-              <th>Serial Number</th>
-              <th>Date Added</th>
+              <th>Serial</th>
+              <th>Date</th>
               <th>Added By</th>
               <th>Actions</th>
             </tr>
@@ -103,70 +140,56 @@
       </div>
 
       <!-- Pagination -->
-      <div class="d-flex justify-content-between align-items-center mb-4">
+      <div class="d-flex justify-content-between align-items-center mb-5">
         <button id="prev-page" class="btn btn-secondary btn-sm">Previous</button>
         <span id="page-info"></span>
         <button id="next-page" class="btn btn-secondary btn-sm">Next</button>
       </div>
 
-      <!-- ================= REQUEST ITEM ================= -->
-      <hr class="my-4" />
-      <h3 class="mb-3">Request Item</h3>
+      <!-- ================= REQUEST SECTION ================= -->
+      <h4 class="mb-3">Request Item</h4>
 
-      <form id="request-form" class="row g-2 mb-3 align-items-end">
+      <form id="request-form" class="row g-2 mb-3">
         <div class="col-md-3">
-          <input type="text" id="req-item-name" class="form-control" placeholder="Item Name" required />
+          <input id="req-item-name" class="form-control" placeholder="Item Name" required />
         </div>
-
         <div class="col-md-2">
-          <input type="text" id="req-brand" class="form-control" placeholder="Brand" required />
+          <input id="req-brand" class="form-control" placeholder="Brand" required />
         </div>
-
         <div class="col-md-2">
-          <input type="number" id="req-quantity" class="form-control" placeholder="Quantity" required />
+          <input type="number" id="req-quantity" class="form-control" placeholder="Qty" required />
         </div>
-
         <div class="col-md-3">
-          <input type="text" id="req-reason" class="form-control" placeholder="Reason" required />
+          <input id="req-reason" class="form-control" placeholder="Reason" required />
         </div>
-
-        <div class="col-md-2">
-          <button type="submit" class="btn btn-primary w-100">Submit Request</button>
+        <div class="col-md-2 d-grid">
+          <button class="btn btn-primary">Submit</button>
         </div>
       </form>
 
-      <!-- 🔵 ARCHIVE NAVIGATION -->
       <div class="mb-2">
-        <button type="button" id="viewArchiveBtn" class="btn btn-warning btn-sm">
-          View Archive
-        </button>
-
-        <button type="button" id="backToRequestsBtn" class="btn btn-secondary btn-sm d-none">
-          Back to Requests
-        </button>
+        <button id="viewArchiveBtn" class="btn btn-warning btn-sm">View Archive</button>
+        <button id="backToRequestsBtn" class="btn btn-secondary btn-sm d-none">Back</button>
       </div>
 
-      <!-- Request Table -->
       <div class="table-responsive">
-        <table class="table table-hover align-middle" id="request-table">
+        <table class="table table-hover align-middle">
           <thead class="table-dark">
             <tr>
-              <th>Item Name</th>
+              <th>Name</th>
               <th>Brand</th>
-              <th>Quantity</th>
+              <th>Qty</th>
               <th>Reason</th>
-              <th>Requested By</th>
+              <th>By</th>
               <th>Date</th>
               <th>Status</th>
             </tr>
           </thead>
-
-          <!-- ✅ IMPORTANT -->
           <tbody id="request-table-body"></tbody>
         </table>
       </div>
 
-    </div>
+    </section>
   </div>
 
   <script src="script.js"></script>
