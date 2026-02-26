@@ -1,57 +1,4 @@
 /* ============================= */
-/* MOBILE RESPONSIVE             */
-/* ============================= */
-@media screen and (max-width: 768px) {
-  body {
-    padding: 10px;
-    align-items: flex-start;
-  }
-
-  .container {
-    width: 100%;
-    max-width: 100%;
-    margin: 0;
-    border-radius: 8px;
-  }
-
-  /* stack forms */
-  #inventory-section {
-    flex-direction: column;
-  }
-
-  input,
-  button,
-  select {
-    width: 100%;
-    font-size: 14px;
-  }
-
-  button {
-    padding: 10px;
-  }
-
-  /* tables scrollable */
-  table {
-    display: block;
-    width: 100%;
-    overflow-x: auto;
-    white-space: nowrap;
-  }
-
-  th, td {
-    font-size: 12px;
-  }
-
-  /* pagination center */
-  .pagination {
-    display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 5px;
-  }
-}
-
-/* ============================= */
 /*       GLOBAL STYLES           */
 /* ============================= */
 * {
@@ -129,12 +76,7 @@ h1, h3 {
 /* ============================= */
 /*       LOGIN & REGISTER        */
 /* ============================= */
-#login-section form {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
+#login-section form,
 #login-section,
 #register-section {
   display: flex;
@@ -145,15 +87,8 @@ h1, h3 {
   width: 100%;
 }
 
-#login-section.hidden,
-#register-section.hidden,
-#inventory-section.hidden {
+.hidden {
   display: none !important;
-}
-
-#login-section,
-#register-section {
-  flex: 0 0 auto;
 }
 
 /* ============================= */
@@ -198,13 +133,8 @@ button:hover {
   opacity: 0.9;
 }
 
-button.edit {
-  background-color: orange;
-}
-
-button.delete {
-  background-color: red;
-}
+button.edit { background-color: orange; }
+button.delete { background-color: red; }
 
 /* ============================= */
 /*           LINKS               */
@@ -214,9 +144,7 @@ a {
   text-decoration: none;
 }
 
-a:hover {
-  text-decoration: underline;
-}
+a:hover { text-decoration: underline; }
 
 /* ============================= */
 /*           ACTIONS BAR         */
@@ -248,6 +176,7 @@ th, td {
   padding: 12px;
   text-align: center;
   border: 1px solid #ddd;
+  font-size: 14px;
 }
 
 thead {
@@ -269,25 +198,61 @@ thead {
   background-color: #f9f9f9;
 }
 
-.request-card h4 {
-  margin-bottom: 5px;
-}
+.request-card h4 { margin-bottom: 5px; }
+.request-card p { margin: 3px 0; font-size: 14px; }
+.request-card .status { font-weight: bold; color: #007bff; }
 
-.request-card p {
-  margin: 3px 0;
-  font-size: 14px;
-}
-
-.request-card .status {
-  font-weight: bold;
-  color: #007bff;
+/* ============================= */
+/*           MODALS              */
+/* ============================= */
+.modal-body {
+  max-height: 70vh;
+  overflow-y: auto;
 }
 
 /* ============================= */
-/*       RESPONSIVE STYLES       */
+/*      MOBILE RESPONSIVE        */
+/* ============================= */
+@media screen and (max-width: 768px) {
+  body { padding: 10px; align-items: flex-start; }
+
+  .container {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    border-radius: 8px;
+    padding: 15px;
+  }
+
+  #inventory-section { flex-direction: column; }
+
+  input, button, select {
+    width: 100%;
+    font-size: 14px;
+  }
+
+  button { padding: 10px; }
+
+  table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  th, td { font-size: 12px; }
+
+  .pagination {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+}
+
+/* ============================= */
+/*       TABLE SCROLLING         */
 /* ============================= */
 @media (max-width: 900px) {
-  .table-wrapper {
-    overflow-x: auto;
-  }
+  .table-wrapper { overflow-x: auto; }
 }

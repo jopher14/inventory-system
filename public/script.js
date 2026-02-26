@@ -1,18 +1,15 @@
 // =====================================================
-// CONFIG
+// CONFIG & STATE
 // =====================================================
 const BASE_URL = `http://${window.location.hostname}:3000`;
 const API = {
   AUTH: `${BASE_URL}/auth`,
   ITEMS: `${BASE_URL}/items`,
   REQUESTS: `${BASE_URL}/requests`,
-  ARCHIVE: `${BASE_URL}/requests/archived`
+  ARCHIVE: `${BASE_URL}/requests/archived`,
 };
 const ROWS_PER_PAGE = 5;
 
-// =====================================================
-// STATE
-// =====================================================
 let currentUser = null;
 let items = [];
 let editingItemId = null;
@@ -20,26 +17,33 @@ let currentPage = 1;
 let isLogin = true;
 
 // =====================================================
-// ELEMENTS
+// ELEMENT SELECTORS
 // =====================================================
 const $ = id => document.getElementById(id);
 
+// Sections
 const authSection = $("auth-section");
 const inventorySection = $("inventory-section");
-const addItemBtn = $("addItemBtn");
 
-const authTitle = $("auth-title");
+// Buttons & Controls
+const addItemBtn = $("addItemBtn");
 const authBtn = $("auth-btn");
 const toggleAuth = $("toggle-auth");
-const toggleText = $("toggle-text");
+const logoutBtn = $("logout-btn");
+const exportBtn = $("export-csv");
+const prevPage = $("prev-page");
+const nextPage = $("next-page");
+const viewArchiveBtn = $("viewArchiveBtn");
+const backToRequestsBtn = $("backToRequestsBtn");
 
+// Auth Fields
+const authTitle = $("auth-title");
+const toggleText = $("toggle-text");
 const authUsername = $("auth-username");
 const authPassword = $("auth-password");
 const authPosition = $("auth-position");
 
-const logoutBtn = $("logout-btn");
-const welcomeUser = $("welcome-user");
-
+// Inventory Form
 const form = $("inventory-form");
 const itemName = $("item-name");
 const itemBrand = $("item-brand");
@@ -48,26 +52,33 @@ const itemDate = $("item-date");
 const employeeUser = $("employee-user");
 const submitBtn = form.querySelector("button[type='submit']");
 
+// Specs Fields
+const specsYes = $("specsYes");
+const specsNo = $("specsNo");
+const specsFields = $("specsFields");
+const modelInput = $("model");
+const warrantyInput = $("warrantyExpiration");
+const cpuInput = $("cpu");
+const ramInput = $("ram");
+const storageInput = $("storage");
+
+// Inventory Table
 const searchInput = $("search");
 const tableBody = $("inventory-table");
 
-const prevPage = $("prev-page");
-const nextPage = $("next-page");
-const pageInfo = $("page-info");
-
-const exportBtn = $("export-csv");
-
+// Requests
 const requestForm = $("request-form");
 const requestTableBody = $("request-table-body");
 
-const viewArchiveBtn = $("viewArchiveBtn");
-const backToRequestsBtn = $("backToRequestsBtn");
+// Welcome
+const welcomeUser = $("welcome-user");
+const pageInfo = $("page-info");
 
 // =====================================================
 // HELPERS
 // =====================================================
 const api = {
-  async get(url) {
+  get: async url => {
     try {
       const res = await fetch(url);
       if (!res.ok) throw new Error(await res.text());
@@ -76,64 +87,68 @@ const api = {
       handleError(err);
     }
   },
-  async send(url, method, body) {
+  send: async (url, method, body = null) => {
     try {
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: body ? JSON.stringify(body) : null
+        body: body ? JSON.stringify(body) : null,
       });
       if (!res.ok) throw new Error(await res.text());
       return res.json();
     } catch (err) {
       handleError(err);
     }
-  }
+  },
 };
 
-function handleError(err) {
+const handleError = err => {
   console.error(err);
   alert(err?.message || "An error occurred");
-}
+};
 
 const roles = {
   isAdmin: () => currentUser?.position === "Admin",
   isManager: () => currentUser?.position === "Manager",
   isAudit: () => currentUser?.position === "Audit",
   isIT: () => currentUser?.position === "IT",
-  canEditItem: item =>
-    roles.isAdmin() || (roles.isIT() && item.added_by === currentUser.username),
-  canApprove: () => roles.isAdmin() || roles.isManager()
+  canEditItem: item => roles.isAdmin() || (roles.isIT() && item.added_by === currentUser.username),
+  canApprove: () => roles.isAdmin() || roles.isManager(),
 };
 
-function resetAuthFields() {
+const resetAuthFields = () => {
   authUsername.value = "";
   authPassword.value = "";
   authPosition.value = "";
-}
+};
 
-function showInventory() {
+const showInventory = () => {
   authSection.classList.add("d-none");
   inventorySection.classList.remove("d-none");
-}
+};
 
-function showAuth() {
+const showAuth = () => {
   inventorySection.classList.add("d-none");
   authSection.classList.remove("d-none");
-}
+};
 
-function handleAddItemVisibility() {
+const closeModal = id => {
+  const modal = bootstrap.Modal.getInstance($(id));
+  modal?.hide();
+};
+
+const toggleSpecsFields = () => {
+  const show = specsYes.checked;
+  specsFields.classList.toggle("d-none", !show);
+  if (!show) [modelInput, warrantyInput, cpuInput, ramInput, storageInput].forEach(f => f.value = "");
+};
+
+const handleAddItemVisibility = () => {
   addItemBtn.classList.toggle("d-none", !(roles.isAdmin() || roles.isIT()));
-}
-
-function closeModal(id) {
-  const modalElement = document.getElementById(id);
-  const modalInstance = bootstrap.Modal.getInstance(modalElement);
-  if (modalInstance) modalInstance.hide();
-}
+};
 
 // =====================================================
-// AUTH
+// AUTHENTICATION
 // =====================================================
 toggleAuth.addEventListener("click", e => {
   e.preventDefault();
@@ -172,154 +187,273 @@ authBtn.addEventListener("click", async () => {
 // =====================================================
 // LOGOUT
 // =====================================================
-document.addEventListener("DOMContentLoaded", () => {
-  const logoutBtn = document.getElementById("logout-btn");
-  const form = document.getElementById("inventory-form");
-  const requestForm = document.getElementById("request-form");
+logoutBtn?.addEventListener("click", () => {
+  currentUser = null;
+  items = [];
+  editingItemId = null;
+  currentPage = 1;
+  isLogin = true;
 
-  if (!logoutBtn) return console.warn("Logout button not found!");
+  form?.reset();
+  requestForm?.reset();
+  resetAuthFields();
+  searchInput.value = "";
+  tableBody.innerHTML = "";
+  requestTableBody.innerHTML = "";
+  showAuth();
+  addItemBtn.classList.add("d-none");
+  welcomeUser.textContent = "";
+  authTitle.textContent = "Login";
+  authBtn.textContent = "Login";
+  toggleText.textContent = "Don’t have an account?";
+  toggleAuth.textContent = "Register here";
+  closeModal("inventoryModal");
+  closeModal("requestModal");
 
-  logoutBtn.addEventListener("click", () => {
-    // Reset state
-    currentUser = null;
-    items = [];
-    editingItemId = null;
-    currentPage = 1;
-    isLogin = true;
-
-    // Reset forms
-    if (form) form.reset();
-    if (requestForm) requestForm.reset();
-    resetAuthFields();
-    if (searchInput) searchInput.value = "";
-
-    // Clear tables
-    if (tableBody) tableBody.innerHTML = "";
-    if (requestTableBody) requestTableBody.innerHTML = "";
-
-    // Reset UI
-    showAuth();
-    if (addItemBtn) addItemBtn.classList.add("d-none");
-    if (welcomeUser) welcomeUser.textContent = "";
-
-    // Reset auth form to login mode
-    if (authTitle) authTitle.textContent = "Login";
-    if (authBtn) authBtn.textContent = "Login";
-    if (toggleText) toggleText.textContent = "Don’t have an account?";
-    if (toggleAuth) toggleAuth.textContent = "Register here";
-
-    // Close modals
-    closeModal("inventoryModal");
-    closeModal("requestModal");
-
-    console.log("Logout successful");
-  });
+  console.log("Logout successful");
 });
 
 // =====================================================
-// INVENTORY
+// INVENTORY HANDLING
 // =====================================================
-async function fetchInventory() {
+const fetchInventory = async () => {
   items = await api.get(API.ITEMS) || [];
   currentPage = 1;
   renderInventory();
-}
+};
 
 form.addEventListener("submit", async e => {
   e.preventDefault();
   if (!currentUser) return alert("Login first");
 
+  const hasSpecs = specsYes.checked;
   const data = {
     name: itemName.value.trim(),
     brand: itemBrand.value.trim(),
     serialNumber: itemSerialNumber.value.trim(),
     date_added: itemDate.value,
     added_by: currentUser.username,
-    employeeUser: employeeUser.value.trim()
+    employeeUser: employeeUser.value.trim(),
+    hasSpecs,
+    model: hasSpecs ? modelInput.value.trim() : null,
+    warrantyExpiration: hasSpecs ? warrantyInput.value : null,
+    cpu: hasSpecs ? cpuInput.value.trim() : null,
+    ram: hasSpecs ? ramInput.value.trim() : null,
+    storage: hasSpecs ? storageInput.value.trim() : null,
   };
-  if (Object.values(data).some(v => !v)) return alert("All fields required");
 
-  const url = editingItemId ? `${API.ITEMS}/${editingItemId}` : API.ITEMS;
-  const method = editingItemId ? "PUT" : "POST";
-  await api.send(url, method, data);
+  if (!data.name || !data.brand || !data.serialNumber || !data.date_added || !data.employeeUser)
+    return alert("All basic fields required");
+
+  if (hasSpecs && (!data.model || !data.warrantyExpiration || !data.cpu || !data.ram || !data.storage))
+    return alert("All specification fields required");
+
+  await api.send(editingItemId ? `${API.ITEMS}/${editingItemId}` : API.ITEMS,
+                 editingItemId ? "PUT" : "POST", data);
 
   editingItemId = null;
   submitBtn.textContent = "Save";
   form.reset();
+  specsNo.checked = true;
+  toggleSpecsFields();
   closeModal("inventoryModal");
   fetchInventory();
 });
 
 // =====================================================
-// RENDER INVENTORY
+// RENDER INVENTORY (WITH DELEGATED BUTTONS + SPECS TOGGLE)
 // =====================================================
-function getFilteredItems() {
+const getFilteredItems = () => {
   const search = searchInput.value.toLowerCase();
   return items.filter(i =>
     i.name?.toLowerCase().includes(search) ||
     i.brand?.toLowerCase().includes(search) ||
     i.serialNumber?.toLowerCase().includes(search)
   );
-}
+};
 
-function renderInventory() {
+const renderInventory = () => {
   tableBody.innerHTML = "";
   const filtered = getFilteredItems();
   const totalPages = Math.max(1, Math.ceil(filtered.length / ROWS_PER_PAGE));
   if (currentPage > totalPages) currentPage = totalPages;
 
-  const start = (currentPage - 1) * ROWS_PER_PAGE;
-  const pageItems = filtered.slice(start, start + ROWS_PER_PAGE);
+  const pageItems = filtered.slice(
+    (currentPage - 1) * ROWS_PER_PAGE,
+    currentPage * ROWS_PER_PAGE
+  );
 
   pageItems.forEach(item => {
+    // Main item row
     const tr = document.createElement("tr");
-    const actions = roles.canEditItem(item)
-      ? `<button class="btn btn-sm btn-warning edit">Edit</button>
-         <button class="btn btn-sm btn-danger delete">Delete</button>`
-      : "";
+    tr.dataset.itemId = item.id;
+
+    const actions = roles.canEditItem(item) ? `
+      <button class="btn btn-sm btn-warning edit" title="Edit">
+        <i class="bi bi-pencil-fill"></i>
+      </button>
+      <button class="btn btn-sm btn-danger delete" title="Delete">
+        <i class="bi bi-trash-fill"></i>
+      </button>
+    ` : "";
+
+    const specsButton = item.hasSpecs ? `
+      <button class="btn btn-sm btn-info view-specs" title="View Specs">
+        <i class="bi bi-eye-fill"></i>
+      </button>
+    ` : "";
+
     tr.innerHTML = `
       <td>${item.name}</td>
       <td>${item.brand}</td>
       <td>${item.serialNumber}</td>
       <td>${item.date_added}</td>
       <td>${item.added_by}</td>
-      <td>${item.employeeUser}
-      <td>${actions}</td>
+      <td>${item.employeeUser || ""}</td>
+      <td class="text-nowrap">${specsButton}${actions}</td>
     `;
-    if (roles.canEditItem(item)) {
-      tr.querySelector(".edit").onclick = () => startEdit(item);
-      tr.querySelector(".delete").onclick = () => deleteItem(item.id);
-    }
+
     tableBody.appendChild(tr);
   });
 
-  updatePagination(totalPages);
-}
-
-function startEdit(item) {
-  itemName.value = item.name;
-  itemBrand.value = item.brand;
-  itemSerialNumber.value = item.serialNumber;
-  itemDate.value = item.date_added;
-  editingItemId = item.id;
-  submitBtn.textContent = "Update";
-}
-
-async function deleteItem(id) {
-  if (!confirm("Delete this item?")) return;
-  await api.send(`${API.ITEMS}/${id}`, "DELETE");
-  fetchInventory();
-}
-
-function updatePagination(totalPages) {
+  // Update pagination info
   pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
   prevPage.disabled = currentPage <= 1;
   nextPage.disabled = currentPage >= totalPages;
+};
+
+// =====================================================
+// TOGGLE SPECS ROW FUNCTION
+// =====================================================
+function toggleSpecsRow(mainRow, item) {
+  let specsRow = mainRow.nextElementSibling;
+
+  // If next row is not specs row, create it
+  if (!specsRow || !specsRow.classList.contains("specs-row")) {
+
+    specsRow = document.createElement("tr");
+    specsRow.className = "specs-row";
+
+    const hasSpecsData =
+      item.hasSpecs &&
+      (item.model || item.warrantyExpiration || item.cpu || item.ram || item.storage);
+
+    specsRow.innerHTML = `
+      <td colspan="7">
+        <div class="p-3 bg-light border rounded">
+          <strong>Specifications:</strong><br><br>
+          ${
+            hasSpecsData
+              ? `
+                <strong>Model:</strong> ${item.model || "-"}<br>
+                <strong>Warranty:</strong> ${item.warrantyExpiration || "-"}<br>
+                <strong>CPU:</strong> ${item.cpu || "-"}<br>
+                <strong>RAM:</strong> ${item.ram || "-"}<br>
+                <strong>Storage:</strong> ${item.storage || "-"}
+              `
+              : "No specs available"
+          }
+        </div>
+      </td>
+    `;
+
+    mainRow.after(specsRow);
+
+  } else {
+    specsRow.classList.toggle("d-none");
+  }
 }
 
-prevPage.addEventListener("click", () => { currentPage--; renderInventory(); });
-nextPage.addEventListener("click", () => { currentPage++; renderInventory(); });
-searchInput.addEventListener("input", () => { currentPage = 1; renderInventory(); });
+// =====================================================
+// EVENT DELEGATION FOR TABLE BUTTONS (EDIT, DELETE, VIEW-SPECS)
+// =====================================================
+// Make sure your HTML has a modal with id="editModal" and inputs inside:
+// <input id="name">, <input id="brand">, etc.
+
+function startEdit(item) {
+  const editModal = document.getElementById("editModal");
+  if (!editModal) return console.error("Edit modal not found");
+
+  // Fill the modal inputs with the item data
+  editModal.querySelector("#name").value = item.name || "";
+  editModal.querySelector("#brand").value = item.brand || "";
+  editModal.querySelector("#serialNumber").value = item.serialNumber || "";
+  editModal.querySelector("#employeeUser").value = item.employeeUser || "";
+
+  // Show the modal (Bootstrap example)
+  const modal = new bootstrap.Modal(editModal);
+  modal.show();
+}
+
+tableBody.addEventListener("click", (e) => {
+  const btn = e.target.closest(".edit, .delete, .view-specs");
+  if (!btn) return;
+
+  const row = btn.closest("tr");
+  const itemId = Number(row.dataset.itemId);
+  const item = items.find(i => i.id === itemId);
+  if (!item) return;
+
+  if (btn.classList.contains("edit")) {
+
+    // Set editing mode
+    editingItemId = item.id;
+
+    // Fill basic fields
+    itemName.value = item.name || "";
+    itemBrand.value = item.brand || "";
+    itemSerialNumber.value = item.serialNumber || "";
+    itemDate.value = item.date_added || "";
+    employeeUser.value = item.employeeUser || "";
+
+    // Handle specs
+    if (item.hasSpecs) {
+      specsYes.checked = true;
+      specsNo.checked = false;
+
+      modelInput.value = item.model || "";
+      warrantyInput.value = item.warrantyExpiration || "";
+      cpuInput.value = item.cpu || "";
+      ramInput.value = item.ram || "";
+      storageInput.value = item.storage || "";
+    } else {
+      specsNo.checked = true;
+      specsYes.checked = false;
+    }
+
+    toggleSpecsFields();
+
+    // Change button text
+    submitBtn.textContent = "Update";
+
+    // Open existing modal
+    const modal = new bootstrap.Modal($("inventoryModal"));
+    modal.show();
+  }
+
+  if (btn.classList.contains("delete")) {
+    // Remove the main row
+    row.remove();
+
+    // Also remove the specs row if it exists
+    const specsRow = row.nextElementSibling;
+    if (specsRow && specsRow.classList.contains("specs-row")) {
+      specsRow.remove();
+    }
+
+    // Remove from items array if you store inventory there
+    const index = items.findIndex(i => i.id === itemId);
+    if (index > -1) items.splice(index, 1);
+
+    // Optionally re-render to update pagination
+    renderInventory();
+  }
+
+  if (btn.classList.contains("view-specs")) {
+    if (!item.hasSpecs) return;
+    toggleSpecsRow(row, item);
+  }
+});
 
 // =====================================================
 // EXPORT CSV
@@ -330,7 +464,9 @@ exportBtn.addEventListener("click", async () => {
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = "inventory.csv"; a.click();
+    a.href = url;
+    a.download = "inventory.csv";
+    a.click();
     URL.revokeObjectURL(url);
   } catch {
     alert("Export failed");
@@ -340,22 +476,17 @@ exportBtn.addEventListener("click", async () => {
 // =====================================================
 // REQUESTS
 // =====================================================
-async function fetchRequests() {
-  const requests = await api.get(API.REQUESTS) || [];
-  renderRequests(requests);
-}
+const fetchRequests = async () => renderRequests(await api.get(API.REQUESTS) || []);
 
-function renderRequests(requests) {
+const renderRequests = requests => {
   requestTableBody.innerHTML = "";
   requests.forEach(r => {
     const tr = document.createElement("tr");
-    let statusCell = r.status;
-    if (roles.canApprove() && r.status === "Pending") {
-      statusCell = `
-        <button class="btn btn-success btn-sm action" data-id="${r.id}" data-status="Approved">Approve</button>
-        <button class="btn btn-danger btn-sm action" data-id="${r.id}" data-status="Rejected">Reject</button>
-      `;
-    }
+    const statusCell = roles.canApprove() && r.status === "Pending"
+      ? `<button class="btn btn-success btn-sm action" data-id="${r.id}" data-status="Approved">Approve</button>
+         <button class="btn btn-danger btn-sm action" data-id="${r.id}" data-status="Rejected">Reject</button>`
+      : r.status;
+
     tr.innerHTML = `
       <td>${r.item_name}</td>
       <td>${r.brand}</td>
@@ -367,7 +498,7 @@ function renderRequests(requests) {
     `;
     requestTableBody.appendChild(tr);
   });
-}
+};
 
 requestTableBody.addEventListener("click", async e => {
   const btn = e.target.closest(".action");
@@ -376,9 +507,6 @@ requestTableBody.addEventListener("click", async e => {
   fetchRequests();
 });
 
-// =====================================================
-// ADD REQUEST
-// =====================================================
 requestForm.addEventListener("submit", async e => {
   e.preventDefault();
   const data = {
@@ -386,7 +514,7 @@ requestForm.addEventListener("submit", async e => {
     brand: $("req-brand").value.trim(),
     quantity: Number($("req-quantity").value),
     reason: $("req-reason").value.trim(),
-    requested_by: currentUser.username
+    requested_by: currentUser.username,
   };
   if (Object.values(data).some(v => !v)) return alert("All fields required");
   await api.send(API.REQUESTS, "POST", data);
@@ -398,20 +526,13 @@ requestForm.addEventListener("submit", async e => {
 // =====================================================
 // ARCHIVE
 // =====================================================
-function handleArchiveVisibility() {
-  if (roles.isAudit()) {
-    viewArchiveBtn.classList.add("d-none");
-  } else {
-    viewArchiveBtn.classList.remove("d-none");
-  }
-
-  // Always hide back button initially
+const handleArchiveVisibility = () => {
+  viewArchiveBtn.classList.toggle("d-none", roles.isAudit());
   backToRequestsBtn.classList.add("d-none");
-}
+};
 
 viewArchiveBtn.addEventListener("click", async () => {
-  const data = await api.get(API.ARCHIVE) || [];
-  renderRequests(data);
+  renderRequests(await api.get(API.ARCHIVE) || []);
   viewArchiveBtn.classList.add("d-none");
   backToRequestsBtn.classList.remove("d-none");
 });
@@ -420,4 +541,19 @@ backToRequestsBtn.addEventListener("click", () => {
   fetchRequests();
   viewArchiveBtn.classList.remove("d-none");
   backToRequestsBtn.classList.add("d-none");
+});
+
+// =====================================================
+// SPECS TOGGLE
+// =====================================================
+document.addEventListener("DOMContentLoaded", () => {
+  const updateSpecsFields = () => toggleSpecsFields();
+
+  specsYes.addEventListener("change", updateSpecsFields);
+  specsNo.addEventListener("change", updateSpecsFields);
+
+  const inventoryModal = $("inventoryModal");
+  inventoryModal?.addEventListener("shown.bs.modal", () => {
+    specsFields.classList.toggle("d-none", !specsYes.checked);
+  });
 });
