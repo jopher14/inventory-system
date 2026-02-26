@@ -272,6 +272,11 @@ const getFilteredItems = () => {
   );
 };
 
+searchInput.addEventListener("input", () => {
+  currentPage = 1;   // reset to first page when searching
+  renderInventory();
+})
+
 const renderInventory = () => {
   tableBody.innerHTML = "";
   const filtered = getFilteredItems();
