@@ -343,24 +343,14 @@ function toggleSpecsRow(mainRow, item) {
       item.hasSpecs &&
       (item.model || item.warrantyExpiration || item.cpu || item.ram || item.storage);
 
-    specsRow.innerHTML = `
-      <td colspan="7">
-        <div class="p-3 bg-light border rounded">
-          <strong>Specifications:</strong><br><br>
-          ${
-            hasSpecsData
-              ? `
-                <strong>Model:</strong> ${item.model || "-"}<br>
-                <strong>Warranty:</strong> ${item.warrantyExpiration || "-"}<br>
-                <strong>CPU:</strong> ${item.cpu || "-"}<br>
-                <strong>RAM:</strong> ${item.ram || "-"}<br>
-                <strong>Storage:</strong> ${item.storage || "-"}
-              `
-              : "No specs available"
-          }
-        </div>
-      </td>
-    `;
+    specsRow.innerHTML = `<td colspan="7"><div class="p-3 bg-light border rounded"><strong>Specifications:</strong> ${
+      hasSpecsData 
+        ? ["model","warrantyExpiration","cpu","ram","storage"]
+            .map(key => item[key] ? `${key.charAt(0).toUpperCase()+key.slice(1)}: ${item[key]}` : null)
+            .filter(Boolean)
+            .join(" | ")
+        : "No specs available"
+    }</div></td>`;
 
     mainRow.after(specsRow);
 
