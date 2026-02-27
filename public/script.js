@@ -110,6 +110,7 @@ const handleError = err => {
 const roles = {
   isAdmin: () => currentUser?.position === "Admin",
   isManager: () => currentUser?.position === "Manager",
+  isSupervisor: () => currentUser?.position === "Supervisor",
   isAudit: () => currentUser?.position === "Audit",
   isIT: () => currentUser?.position === "IT",
   canEditItem: item => roles.isAdmin() || (roles.isIT() && item.added_by === currentUser.username),
@@ -522,7 +523,9 @@ requestForm.addEventListener("submit", async e => {
 // ARCHIVE
 // =====================================================
 const handleArchiveVisibility = () => {
-  viewArchiveBtn.classList.toggle("d-none", roles.isAudit());
+  viewArchiveBtn.classList.toggle(
+    "d-none",
+    roles.isAudit() || roles.isSupervisor);
   backToRequestsBtn.classList.add("d-none");
 };
 
