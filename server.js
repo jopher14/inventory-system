@@ -44,7 +44,9 @@ db.serialize(() => {
       warrantyExpiration TEXT,
       cpu TEXT,
       ram TEXT,
-      storage TEXT
+      storage TEXT,
+      edited_by TEXT,
+      edited_at TEXT
     )
   `);
 
@@ -169,19 +171,47 @@ app.put("/items/:id", async (req, res) => {
   try {
     const {
       name, brand, serialNumber, date_added, employeeUser,
-      hasSpecs, model, warrantyExpiration, cpu, ram, storage
+      hasSpecs, model, warrantyExpiration, cpu, ram, storage,
+      edited_by // frontend must send current username
     } = req.body;
 
     if (!name || !brand || !serialNumber || !date_added)
       return res.status(400).json({ error: "Missing fields" });
 
+    const edited_at = new Date().toISOString();
+
     await runQuery(
       `UPDATE inventory SET
-        name=?, brand=?, serialNumber=?, date_added=?, employeeUser=?,
-        hasSpecs=?, model=?, warrantyExpiration=?, cpu=?, ram=?, storage=?
+        name=?, 
+        brand=?, 
+        serialNumber=?, 
+        date_added=?, 
+        employeeUser=?,
+        hasSpecs=?, 
+        model=?, 
+        warrantyExpiration=?, 
+        cpu=?, 
+        ram=?, 
+        storage=?,
+        edited_by=?,
+        edited_at=?
        WHERE id=?`,
-      [name, brand, serialNumber, date_added, employeeUser,
-      hasSpecs ? 1 : 0, model, warrantyExpiration, cpu, ram, storage, req.params.id]
+      [
+        name,
+        brand,
+        serialNumber,
+        date_added,
+        employeeUser,
+        hasSpecs ? 1 : 0,
+        model,
+        warrantyExpiration,
+        cpu,
+        ram,
+        storage,
+        edited_by,
+        edited_at,
+        req.params.id
+      ]
     );
 
     res.json({ message: "Item updated" });

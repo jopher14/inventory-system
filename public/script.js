@@ -148,6 +148,22 @@ const handleAddItemVisibility = () => {
   addItemBtn.classList.toggle("d-none", !(roles.isAdmin() || roles.isIT()));
 };
 
+function formatDateTime(dateString) {
+  const date = new Date(dateString);
+  return date.toLocaleString();
+}
+
+function initializeTooltips() {
+  const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+
+  tooltipTriggerList.forEach(el => {
+    const existing = bootstrap.Tooltip.getInstance(el);
+    if (existing) existing.dispose();
+    new bootstrap.Tooltip(el);
+  });
+}
+
+
 // =====================================================
 // AUTHENTICATION
 // =====================================================
@@ -243,6 +259,12 @@ form.addEventListener("submit", async e => {
     storage: hasSpecs ? storageInput.value.trim() : null,
   };
 
+  // ADD EDIT INFO IF EDITING
+  if (editingItemId) {
+    data.edited_by = currentUser.username;
+    data.edited_at = new Date().toISOString();
+  }
+
   if (!data.name || !data.brand || !data.serialNumber || !data.date_added || !data.employeeUser)
     return alert("All basic fields required");
 
@@ -290,7 +312,6 @@ const renderInventory = () => {
   );
 
   pageItems.forEach(item => {
-    // Main item row
     const tr = document.createElement("tr");
     tr.dataset.itemId = item.id;
 
@@ -309,8 +330,21 @@ const renderInventory = () => {
       </button>
     ` : "";
 
+    // Tooltip content
+    const editedInfo = item.edited_by && item.edited_at
+      ? `
+        <strong>Edited by:</strong> ${item.edited_by}<br>
+        <strong>On:</strong> ${formatDateTime(item.edited_at)}
+      `
+      : "<em>Never edited</em>";
+
+    // 🔥 Attach tooltip to entire row
+    tr.setAttribute("data-bs-toggle", "tooltip");
+    tr.setAttribute("data-bs-html", "true");
+    tr.setAttribute("title", editedInfo);
+
     tr.innerHTML = `
-      <td>${item.name}</td>
+      <td data-bs-toggle="tooltip" data-bs-html="true" title="${editedInfo}">${item.name}</td>
       <td>${item.brand}</td>
       <td>${item.serialNumber}</td>
       <td>${item.date_added}</td>
@@ -326,6 +360,7 @@ const renderInventory = () => {
   pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
   prevPage.disabled = currentPage <= 1;
   nextPage.disabled = currentPage >= totalPages;
+  initializeTooltips();
 };
 
 // =====================================================
