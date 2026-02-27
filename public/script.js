@@ -510,19 +510,44 @@ tableBody.addEventListener("click", (e) => {
 });
 
 // =====================================================
-// EXPORT CSV
+// EXPORT CSV (VISIBLE SEARCHED TABLE ONLY WITH FOOTER)
 // =====================================================
-exportBtn.addEventListener("click", async () => {
+exportBtn.addEventListener("click", () => {
   try {
-    const res = await fetch(`${API.ITEMS}/export`);
-    const blob = await res.blob();
+    // Grab only currently visible rows in the table
+    const rows = Array.from(tableBody.querySelectorAll("tr"));
+    if (rows.length === 0) {
+      alert("No data to export!");
+      return;
+    }
+
+    // Build CSV
+    const csv = [];
+    csv.push(["Name","Brand","Serial","Date Added","Added By","Employee User"].join(",")); // header
+
+    rows.forEach(tr => {
+      const cols = Array.from(tr.querySelectorAll("td")).slice(0,6); // skip Actions column
+      const row = cols.map(td => `"${td.textContent.replace(/"/g, '""')}"`); // escape quotes
+      csv.push(row.join(","));
+    });
+
+    // Footer for signatures
+    csv.push(""); // empty line
+    csv.push("Manager Signature:, , , , , ");
+    csv.push("Audit Signature:, , , , , ");
+    csv.push("IT Signature:, , , , , ");
+
+    // Download CSV
+    const blob = new Blob([csv.join("\n")], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "inventory.csv";
+    a.download = "inventory_visible.csv";
     a.click();
     URL.revokeObjectURL(url);
-  } catch {
+
+  } catch (err) {
+    console.error(err);
     alert("Export failed");
   }
 });
