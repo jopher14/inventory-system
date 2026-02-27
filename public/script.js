@@ -212,12 +212,24 @@ logoutBtn?.addEventListener("click", () => {
   currentPage = 1;
   isLogin = true;
 
+  // Reset forms and search
   form?.reset();
   requestForm?.reset();
   resetAuthFields();
   searchInput.value = "";
+  
+  // Reset table content
   tableBody.innerHTML = "";
   requestTableBody.innerHTML = "";
+
+  // Reset sorting
+  currentSortKey = null;
+  document.querySelectorAll("th[data-sort]").forEach(th => {
+    const arrow = th.querySelector(".sort-arrow");
+    if (arrow) arrow.textContent = ""; // remove arrows
+  });
+
+  // Reset auth UI
   showAuth();
   addItemBtn.classList.add("d-none");
   welcomeUser.textContent = "";
@@ -225,6 +237,8 @@ logoutBtn?.addEventListener("click", () => {
   authBtn.textContent = "Login";
   toggleText.textContent = "Don’t have an account?";
   toggleAuth.textContent = "Register here";
+
+  // Close modals
   closeModal("inventoryModal");
   closeModal("requestModal");
 
