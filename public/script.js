@@ -15,6 +15,7 @@ let items = [];
 let editingItemId = null;
 let currentPage = 1;
 let isLogin = true;
+let currentSortKey = null; // "name" or "date"
 
 // =====================================================
 // ELEMENT SELECTORS
@@ -295,6 +296,17 @@ const getFilteredItems = () => {
   );
 };
 
+const sortItems = (items) => {
+  if (!currentSortKey) return items;
+
+  if (currentSortKey === "date") {
+    return items.slice().sort((a, b) => new Date(a.date_added) - new Date(b.date_added));
+  } else if (currentSortKey === "name") {
+    return items.slice().sort((a, b) => a.name.localeCompare(b.name));
+  }
+  return items;
+};
+
 searchInput.addEventListener("input", () => {
   currentPage = 1;   // reset to first page when searching
   renderInventory();
@@ -302,11 +314,14 @@ searchInput.addEventListener("input", () => {
 
 const renderInventory = () => {
   tableBody.innerHTML = "";
-  const filtered = getFilteredItems();
-  const totalPages = Math.max(1, Math.ceil(filtered.length / ROWS_PER_PAGE));
+
+  let filtered = getFilteredItems();
+  let sorted = sortItems(filtered);  // <-- Apply sorting here
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / ROWS_PER_PAGE));
   if (currentPage > totalPages) currentPage = totalPages;
 
-  const pageItems = filtered.slice(
+  const pageItems = sorted.slice(
     (currentPage - 1) * ROWS_PER_PAGE,
     currentPage * ROWS_PER_PAGE
   );
@@ -330,15 +345,12 @@ const renderInventory = () => {
       </button>
     ` : "";
 
-    // Tooltip content
     const editedInfo = item.edited_by && item.edited_at
       ? `
         <strong>Edited by:</strong> ${item.edited_by}<br>
         <strong>On:</strong> ${formatDateTime(item.edited_at)}
-      `
-      : "<em>Never edited</em>";
+      ` : "<em>Never edited</em>";
 
-    // 🔥 Attach tooltip to entire row
     tr.setAttribute("data-bs-toggle", "tooltip");
     tr.setAttribute("data-bs-html", "true");
     tr.setAttribute("title", editedInfo);
@@ -356,10 +368,21 @@ const renderInventory = () => {
     tableBody.appendChild(tr);
   });
 
-  // Update pagination info
   pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
   prevPage.disabled = currentPage <= 1;
   nextPage.disabled = currentPage >= totalPages;
+
+  // Update sort arrows
+  document.querySelectorAll("th[data-sort]").forEach(th => {
+    th.addEventListener("click", () => {
+      const key = th.dataset.sort;
+      if (key === "name" || key === "date") {
+        currentSortKey = key; // always ascending
+        renderInventory();
+      }
+    });
+  });
+
   initializeTooltips();
 };
 
