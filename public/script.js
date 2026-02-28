@@ -1,7 +1,7 @@
 // =====================================================
 // CONFIG & STATE
 // =====================================================
-const BASE_URL = `http://${window.location.hostname}:3000`;
+const BASE_URL = window.location.origin;
 const API = {
   AUTH: `${BASE_URL}/auth`,
   ITEMS: `${BASE_URL}/items`,
