@@ -573,12 +573,34 @@ const fetchRequests = async () => renderRequests(await api.get(API.REQUESTS) || 
 
 const renderRequests = requests => {
   requestTableBody.innerHTML = "";
+
   requests.forEach(r => {
     const tr = document.createElement("tr");
-    const statusCell = roles.canApprove() && r.status === "Pending"
-      ? `<button class="btn btn-success btn-sm action" data-id="${r.id}" data-status="Approved">Approve</button>
-         <button class="btn btn-danger btn-sm action" data-id="${r.id}" data-status="Rejected">Reject</button>`
-      : r.status;
+
+    let statusCell;
+
+    if (roles.canApprove() && r.status === "Pending") {
+      statusCell = `
+        <button class="btn btn-success btn-sm action" data-id="${r.id}" data-status="Approved">Approve</button>
+        <button class="btn btn-danger btn-sm action" data-id="${r.id}" data-status="Rejected">Reject</button>
+      `;
+    } else if (r.status === "Approved") {
+      statusCell = `
+        <span class="text-success fw-semibold">
+          Approved by: ${r.approved_by}<br>
+          ${new Date(r.approved_at).toLocaleString()}
+        </span>
+      `;
+    } else if (r.status === "Rejected") {
+      statusCell = `
+        <span class="text-danger fw-semibold">
+          Rejected by: ${r.approved_by}<br>
+          ${new Date(r.approved_at).toLocaleString()}
+        </span>
+      `;
+    } else {
+      statusCell = r.status;
+    }
 
     tr.innerHTML = `
       <td>${r.item_name}</td>
@@ -589,6 +611,7 @@ const renderRequests = requests => {
       <td>${new Date(r.request_date).toLocaleDateString()}</td>
       <td>${statusCell}</td>
     `;
+
     requestTableBody.appendChild(tr);
   });
 };
@@ -596,7 +619,12 @@ const renderRequests = requests => {
 requestTableBody.addEventListener("click", async e => {
   const btn = e.target.closest(".action");
   if (!btn) return;
-  await api.send(`${API.REQUESTS}/${btn.dataset.id}`, "PUT", { status: btn.dataset.status });
+
+  await api.send(`${API.REQUESTS}/${btn.dataset.id}`, "PUT", {
+    status: btn.dataset.status,
+    approved_by: currentUser.username
+  });
+
   fetchRequests();
 });
 

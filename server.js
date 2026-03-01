@@ -59,7 +59,9 @@ db.serialize(() => {
       reason TEXT,
       requested_by TEXT,
       request_date TEXT,
-      status TEXT DEFAULT 'Pending'
+      status TEXT DEFAULT 'Pending',
+      approved_by TEXT,
+      approved_at TEXT
     )
   `);
 
@@ -262,16 +264,21 @@ app.post("/requests", async (req, res) => {
   }
 });
 
-app.put("/requests/:id", async (req, res) => {
-  try {
-    const { status } = req.body;
-    if (!status) return res.status(400).json({ error: "Missing status" });
+app.put("/requests/:id", (req, res) => {
+  const { status, approved_by } = req.body;
 
-    await runQuery("UPDATE item_requests SET status=? WHERE id=?", [status, req.params.id]);
-    res.json({ message: "Status updated" });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  db.run(
+    `UPDATE item_requests
+     SET status = ?, 
+         approved_by = ?, 
+         approved_at = datetime('now', '+8 hours')
+     WHERE id = ?`,
+    [status, approved_by, req.params.id],
+    function (err) {
+      if (err) return res.status(400).json({ error: err.message });
+      res.json({ message: "Request updated successfully" });
+    }
+  );
 });
 
 // ================= ARCHIVED REQUESTS =================
