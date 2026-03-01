@@ -17,7 +17,8 @@ Instructions on how to install dependencies and set up the project.
 
 ## LoginandRegistration
 
-- Must have Username and Password prefred Whole Name
+- Username: prefred Whole Name
+- Password: any kind of string
 - Select Position from (Admin, IT, Audit, Manager, Supervisor)
 
 ## UserRole
@@ -30,13 +31,18 @@ Instructions on how to install dependencies and set up the project.
 
 ## InventoryTable
 
-- Item Name
-- Brand
-- Serial Number
-- Date Added
-- Employee User
-  if Laptop - Model - Warranty Expiration - CPU - RAM - Storage size
-- Export CSV
+- Item Name: Item type
+- Brand: brand or model of the item
+- Serial Number: item serial number
+- Date: date that the item added
+- Employee User: assigned employee or users
+  if Laptop
+  - Model: unit model
+  - Warranty Expiration: unit warranty
+  - CPU: cpu with gen
+  - RAM: memory capacity and megahertz
+  - Storage size: SSD or HDD
+- Export CSV: it export to a csv file only what on the table displayed
 
 ## RequestTable
 
@@ -47,10 +53,5 @@ Instructions on how to install dependencies and set up the project.
 
 ## ArchiveTable
 
-- Approve
-- Reject
-
-```bash
-# Example
-pip install -r requirements.txt
-```
+- Approve: approved with name and date
+- Reject: rejected with name and date
