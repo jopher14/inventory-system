@@ -314,10 +314,21 @@ const sortItems = (items) => {
   if (!currentSortKey) return items;
 
   if (currentSortKey === "date") {
-    return items.slice().sort((a, b) => new Date(a.date_added) - new Date(b.date_added));
+    return items
+      .slice()
+      .sort((a, b) => new Date(a.date_added) - new Date(b.date_added));
+
   } else if (currentSortKey === "name") {
-    return items.slice().sort((a, b) => a.name.localeCompare(b.name));
+    return items
+      .slice()
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+  } else if (currentSortKey === "brand") {
+    return items
+      .slice()
+      .sort((a, b) => (a.brand || "").localeCompare(b.brand || ""));
   }
+
   return items;
 };
 
@@ -370,7 +381,7 @@ const renderInventory = () => {
     tr.setAttribute("title", editedInfo);
 
     tr.innerHTML = `
-      <td data-bs-toggle="tooltip" data-bs-html="true" title="${editedInfo}">${item.name}</td>
+      <td>${item.name}</td>
       <td>${item.brand}</td>
       <td>${item.serialNumber}</td>
       <td>${item.date_added}</td>
