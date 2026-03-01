@@ -197,6 +197,13 @@ authBtn.addEventListener("click", async () => {
   } else {
     await api.send(`${API.AUTH}/register`, "POST", { username, password, position });
     alert("Registration successful!");
+
+    // Clear fields and reset dropdown
+    authUsername.value = "";
+    authPassword.value = "";
+    authPosition.selectedIndex = 0; // reset to first option (default)
+
+    // Switch back to login view
     isLogin = true;
     toggleAuth.click();
   }
