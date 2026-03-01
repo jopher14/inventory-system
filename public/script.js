@@ -81,22 +81,35 @@ const pageInfo = $("page-info");
 const api = {
   get: async url => {
     try {
-      const res = await fetch(url);
+      const res = await fetch(url, {
+        headers: {
+          "Content-Type": "application/json",
+          "role": currentUser?.position || ""  // 👈 send role automatically
+        }
+      });
+
       if (!res.ok) throw new Error(await res.text());
       return res.json();
+
     } catch (err) {
       handleError(err);
     }
   },
+
   send: async (url, method, body = null) => {
     try {
       const res = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "role": currentUser?.position || ""
+        },
         body: body ? JSON.stringify(body) : null,
       });
+
       if (!res.ok) throw new Error(await res.text());
       return res.json();
+
     } catch (err) {
       handleError(err);
     }
@@ -164,6 +177,13 @@ function initializeTooltips() {
   });
 }
 
+const usersModal = document.getElementById("usersModal");
+
+usersModal.addEventListener("hidden.bs.modal", function () {
+  const focused = document.activeElement;
+  if (usersModal.contains(focused)) focused.blur();
+  if (viewUsersBtn) viewUsersBtn.focus();
+})
 
 // =====================================================
 // AUTHENTICATION
@@ -190,6 +210,12 @@ authBtn.addEventListener("click", async () => {
     currentUser = data.user;
     welcomeUser.textContent = `Welcome, ${currentUser.username}!`;
     showInventory();
+
+    if (currentUser.position === "Admin") {
+      viewUsersBtn.style.display = "inline-block";
+    } else {
+      viewUsersBtn.style.display = "none";
+    }
     handleArchiveVisibility();
     handleAddItemVisibility();
     await fetchInventory();
@@ -409,7 +435,7 @@ const renderInventory = () => {
     th.addEventListener("click", () => {
       const key = th.dataset.sort;
       if (key === "name" || key === "date") {
-        currentSortKey = key; // always ascending
+        currentSortKey = key;
         renderInventory();
       }
     });
@@ -696,5 +722,83 @@ document.addEventListener("DOMContentLoaded", () => {
   const inventoryModal = $("inventoryModal");
   inventoryModal?.addEventListener("shown.bs.modal", () => {
     specsFields.classList.toggle("d-none", !specsYes.checked);
+  });
+});
+
+// =====================================================
+// VIEW USERS
+// =====================================================
+
+const usersTableBody = document.getElementById("users-table-body");
+const viewUsersBtn = document.getElementById("viewUsersBtn");
+
+viewUsersBtn?.addEventListener("click", loadUsers);
+
+async function loadUsers() {
+  try {
+    const res = await fetch(`${API.AUTH}/users`, {
+      headers: {
+        "Content-Type": "application/json",
+        "role": currentUser.position   // 👈 send role
+      }
+    });
+
+    if (!res.ok) {
+      const error = await res.text();
+      throw new Error(error);
+    }
+
+    const users = await res.json();
+
+    usersTableBody.innerHTML = "";
+
+    users.forEach(user => {
+      const tr = document.createElement("tr");
+
+      tr.innerHTML = `
+        <td>${user.id}</td>
+        <td>${user.username}</td>
+        <td>${user.position}</td>
+        <td>${user.created_at ? formatDateTime(user.created_at) : ""}</td>
+      `;
+
+      usersTableBody.appendChild(tr);
+    });
+
+  } catch (err) {
+    console.error("Error loading users:", err);
+    alert("Unauthorized or failed to fetch users");
+  }
+}
+
+document.querySelectorAll('.modal').forEach(modalEl => {
+  modalEl.addEventListener('hidden.bs.modal', () => {
+    const trigger = document.querySelector(`[data-bs-target="#${modalEl.id}"]`);
+    if (trigger) trigger.focus();
+  });
+});
+
+// =====================================================
+// MODAL FOCUS MANAGEMENT (ARIA-COMPLIANT)
+// =====================================================
+document.querySelectorAll('.modal').forEach(modalEl => {
+  const triggerSelector = `[data-bs-target="#${modalEl.id}"]`;
+
+  // When modal is shown
+  modalEl.addEventListener('shown.bs.modal', () => {
+    // Focus the first focusable element inside the modal (if exists)
+    const focusable = modalEl.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+    if (focusable) focusable.focus();
+  });
+
+  // When modal is hidden
+  modalEl.addEventListener('hidden.bs.modal', () => {
+    // Blur any focused element inside the modal
+    const focused = document.activeElement;
+    if (modalEl.contains(focused)) focused.blur();
+
+    // Return focus to the trigger button
+    const trigger = document.querySelector(triggerSelector);
+    if (trigger) trigger.focus();
   });
 });

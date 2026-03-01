@@ -26,7 +26,8 @@ db.serialize(() => {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT UNIQUE,
       password TEXT,
-      position TEXT
+      position TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
     )
   `);
 
@@ -107,9 +108,11 @@ app.post("/auth/register", async (req, res) => {
       return res.status(400).json({ error: "Missing fields" });
 
     const hashed = await bcrypt.hash(password, 10);
+    const createdAt = new Date().toISOString();
+
     const result = await runQuery(
-      "INSERT INTO users (username, password, position) VALUES (?, ?, ?)",
-      [username.trim(), hashed, position.trim()]
+      "INSERT INTO users (username, password, position, created_at) VALUES (?, ?, ?, ?)",
+      [username.trim(), hashed, position.trim(), createdAt]
     );
     res.json({ message: "Registered successfully", user: { id: result.lastID, username, position } });
   } catch (err) {
@@ -133,6 +136,28 @@ app.post("/auth/login", async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// =====================================================
+// GET ALL USERS
+// =====================================================
+app.get("/auth/users", (req, res) => {
+  const role = req.headers.role;
+
+  console.log("ROLE RECEIVED:", role);
+
+  if (!role || role.trim().toLowerCase() !== "admin") {
+    return res.status(403).json({ error: "Unauthorized" });
+  }
+
+  db.all(
+    "SELECT id, username, position, created_at FROM users ORDER BY id DESC",
+    [],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(rows);
+    }
+  );
 });
 
 // ================= INVENTORY =================
