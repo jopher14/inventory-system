@@ -188,15 +188,6 @@ usersModal.addEventListener("hidden.bs.modal", function () {
 // =====================================================
 // AUTHENTICATION
 // =====================================================
-toggleAuth.addEventListener("click", e => {
-  e.preventDefault();
-  isLogin = !isLogin;
-  authTitle.textContent = isLogin ? "Login" : "Register";
-  authBtn.textContent = isLogin ? "Login" : "Register";
-  toggleText.textContent = isLogin ? "Don’t have an account?" : "Already have an account?";
-  toggleAuth.textContent = isLogin ? "Register here" : "Back to login";
-});
-
 authBtn.addEventListener("click", async () => {
   const username = authUsername.value.trim();
   const password = authPassword.value.trim();
@@ -236,6 +227,42 @@ authBtn.addEventListener("click", async () => {
 });
 
 // =====================================================
+// REGISTER USER (INSIDE USERS MODAL)
+// =====================================================
+const registerUserForm = document.getElementById("register-user-form");
+
+registerUserForm?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  if (!roles.isAdmin()) {
+    return alert("Only Admin can register users");
+  }
+
+  const username = document.getElementById("new-username").value.trim();
+  const password = document.getElementById("new-password").value.trim();
+  const position = document.getElementById("new-position").value;
+
+  if (!username || !password || !position)
+    return alert("All fields required");
+
+  try {
+    await api.send(`${API.AUTH}/register`, "POST", {
+      username,
+      password,
+      position
+    });
+
+    alert("User registered successfully!");
+
+    registerUserForm.reset();
+    loadUsers(); // refresh table
+
+  } catch (err) {
+    console.error(err);
+  }
+});
+
+// =====================================================
 // LOGOUT
 // =====================================================
 logoutBtn?.addEventListener("click", () => {
@@ -261,15 +288,6 @@ logoutBtn?.addEventListener("click", () => {
     const arrow = th.querySelector(".sort-arrow");
     if (arrow) arrow.textContent = ""; // remove arrows
   });
-
-  // Reset auth UI
-  showAuth();
-  addItemBtn.classList.add("d-none");
-  welcomeUser.textContent = "";
-  authTitle.textContent = "Login";
-  authBtn.textContent = "Login";
-  toggleText.textContent = "Don’t have an account?";
-  toggleAuth.textContent = "Register here";
 
   // Close modals
   closeModal("inventoryModal");

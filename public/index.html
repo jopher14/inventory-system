@@ -36,10 +36,6 @@
 
       <button id="auth-btn" class="btn btn-primary w-100 mb-2">Login</button>
 
-      <p class="text-center small">
-        <span id="toggle-text">Don’t have an account?</span>
-        <a href="#" id="toggle-auth">Register here</a>
-      </p>
     </section>
 
     <!-- ================= INVENTORY SECTION ================= -->
@@ -266,11 +262,56 @@
       <div class="modal-content">
 
         <div class="modal-header">
-          <h5 class="modal-title">Registered Users</h5>
+          <h5 class="modal-title">User Management</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
 
         <div class="modal-body">
+
+          <!-- ================= REGISTER USER FORM ================= -->
+          <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+              Register New User
+            </div>
+            <div class="card-body">
+
+              <form id="register-user-form">
+                <div class="row g-2">
+
+                  <div class="col-md-4">
+                    <input type="text" id="new-username" 
+                      class="form-control" placeholder="Username" required>
+                  </div>
+
+                  <div class="col-md-4">
+                    <input type="password" id="new-password" 
+                      class="form-control" placeholder="Password" required>
+                  </div>
+
+                  <div class="col-md-3">
+                    <select id="new-position" class="form-select" required>
+                      <option value="">Position</option>
+                      <option>Admin</option>
+                      <option>Audit</option>
+                      <option>Manager</option>
+                      <option>Supervisor</option>
+                      <option>IT</option>
+                    </select>
+                  </div>
+
+                  <div class="col-md-1 d-grid">
+                    <button type="submit" class="btn btn-success">
+                      <i class="bi bi-plus"></i>
+                    </button>
+                  </div>
+
+                </div>
+              </form>
+
+            </div>
+          </div>
+
+          <!-- ================= USERS TABLE ================= -->
           <div class="table-responsive">
             <table class="table table-hover align-middle">
               <thead class="table-dark">
@@ -284,6 +325,7 @@
               <tbody id="users-table-body"></tbody>
             </table>
           </div>
+
         </div>
 
       </div>
