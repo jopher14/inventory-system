@@ -186,43 +186,45 @@ usersModal.addEventListener("hidden.bs.modal", function () {
 })
 
 // =====================================================
-// AUTHENTICATION
+// AUTHENTICATION (LOGIN ONLY)
 // =====================================================
 authBtn.addEventListener("click", async () => {
   const username = authUsername.value.trim();
   const password = authPassword.value.trim();
   const position = authPosition.value;
 
-  if (!username || !password || !position) return alert("All fields required");
+  if (!username || !password || !position)
+    return alert("All fields required");
 
-  if (isLogin) {
-    const data = await api.send(`${API.AUTH}/login`, "POST", { username, password, position });
+  try {
+    const data = await api.send(`${API.AUTH}/login`, "POST", {
+      username,
+      password,
+      position
+    });
+
     if (!data?.user) return;
+
     currentUser = data.user;
+
+    if (currentUser.status === "Inactive") {
+      alert("Your account is inactive. Please contact the administrator.");
+      return;
+    }
+
     welcomeUser.textContent = `Welcome, ${currentUser.username}!`;
     showInventory();
 
-    if (currentUser.position === "Admin") {
-      viewUsersBtn.style.display = "inline-block";
-    } else {
-      viewUsersBtn.style.display = "none";
-    }
+    viewUsersBtn.style.display =
+      currentUser.position === "Admin" ? "inline-block" : "none";
+
     handleArchiveVisibility();
     handleAddItemVisibility();
     await fetchInventory();
     await fetchRequests();
-  } else {
-    await api.send(`${API.AUTH}/register`, "POST", { username, password, position });
-    alert("Registration successful!");
 
-    // Clear fields and reset dropdown
-    authUsername.value = "";
-    authPassword.value = "";
-    authPosition.selectedIndex = 0; // reset to first option (default)
-
-    // Switch back to login view
-    isLogin = true;
-    toggleAuth.click();
+  } catch (err) {
+    alert(err.message || "Login failed");
   }
 });
 
