@@ -27,6 +27,7 @@ db.serialize(() => {
       username TEXT UNIQUE,
       password TEXT,
       position TEXT,
+      status TEXT DEFAULT 'Active',
       created_at TEXT DEFAULT CURRENT_TIMESTAMP
     )
   `);
@@ -79,6 +80,42 @@ db.serialize(() => {
       archived_at TEXT
     )
   `);
+});
+
+// =====================================================
+// CREATE DEFAULT ADMIN (IF NOT EXISTS)
+// =====================================================
+const DEFAULT_ADMIN = {
+  username: "admin",
+  password: "admin",
+  position: "Admin"
+};
+
+db.get("SELECT * FROM users WHERE username = ?", [DEFAULT_ADMIN.username], async (err, row) => {
+  if (err) {
+    console.error("Error checking default admin:", err);
+    return;
+  }
+
+  if (!row) {
+    const hashedPassword = await bcrypt.hash(DEFAULT_ADMIN.password, 10);
+
+    db.run(
+      "INSERT INTO users (username, password, position) VALUES (?, ?, ?)",
+      [DEFAULT_ADMIN.username, hashedPassword, DEFAULT_ADMIN.position],
+      (err) => {
+        if (err) {
+          console.error("Error creating default admin:", err);
+        } else {
+          console.log("Default Admin created:");
+          console.log("Username: admin");
+          console.log("Password: admin123");
+        }
+      }
+    );
+  } else {
+    console.log("Default Admin already exists");
+  }
 });
 
 // ================= HELPERS =================
@@ -156,6 +193,23 @@ app.get("/auth/users", (req, res) => {
     (err, rows) => {
       if (err) return res.status(500).json({ error: err.message });
       res.json(rows);
+    }
+  );
+});
+
+app.put("/auth/users/:id/status", (req, res) => {
+  if (req.headers.role !== "Admin")
+    return res.status(403).send("Unauthorized");
+
+  const { id } = req.params;
+  const { status } = req.body;
+
+  db.run(
+    "UPDATE users SET status = ? WHERE id = ?",
+    [status, id],
+    function (err) {
+      if (err) return res.status(500).send(err.message);
+      res.json({ message: "Status updated" });
     }
   );
 });

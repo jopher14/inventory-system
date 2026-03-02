@@ -773,10 +773,29 @@ async function loadUsers() {
     users.forEach(user => {
       const tr = document.createElement("tr");
 
+      let statusField;
+
+      if (roles.isAdmin()) {
+        statusField = `
+          <select class="form-select form-select-sm user-status"
+                  data-id="${user.id}">
+            <option value="Active" ${user.status === "Active" ? "selected" : ""}>
+              Active
+            </option>
+            <option value="Inactive" ${user.status === "Inactive" ? "selected" : ""}>
+              Inactive
+            </option>
+          </select>
+        `;
+      } else {
+        statusField = user.status;
+      }
+
       tr.innerHTML = `
         <td>${user.id}</td>
         <td>${user.username}</td>
         <td>${user.position}</td>
+        <td>${statusField}</td>
         <td>${user.created_at ? formatDateTime(user.created_at) : ""}</td>
       `;
 
@@ -794,6 +813,28 @@ document.querySelectorAll('.modal').forEach(modalEl => {
     const trigger = document.querySelector(`[data-bs-target="#${modalEl.id}"]`);
     if (trigger) trigger.focus();
   });
+});
+
+// =====================================================
+// UPDATE USER STATUS (DROPDOWN)
+// =====================================================
+usersTableBody.addEventListener("change", async (e) => {
+  const select = e.target.closest(".user-status");
+  if (!select) return;
+
+  const userId = select.dataset.id;
+  const newStatus = select.value;
+
+  try {
+    await api.send(`${API.AUTH}/users/${userId}/status`, "PUT", {
+      status: newStatus
+    });
+
+  } catch (err) {
+    console.error(err);
+    alert("Failed to update status");
+    loadUsers(); // revert on failure
+  }
 });
 
 // =====================================================
