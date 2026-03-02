@@ -289,6 +289,13 @@ logoutBtn?.addEventListener("click", () => {
     if (arrow) arrow.textContent = ""; // remove arrows
   });
 
+  // Reset auth UI
+  showAuth();
+  addItemBtn.classList.add("d-none");
+  welcomeUser.textContent = "";
+  authTitle.textContent = "Login";
+  authBtn.textContent = "Login";
+
   // Close modals
   closeModal("inventoryModal");
   closeModal("requestModal");
