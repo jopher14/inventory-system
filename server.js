@@ -179,36 +179,35 @@ app.post("/auth/login", async (req, res) => {
 // GET ALL USERS
 // =====================================================
 app.get("/auth/users", (req, res) => {
-  const role = req.headers.role;
-
-  console.log("ROLE RECEIVED:", role);
-
-  if (!role || role.trim().toLowerCase() !== "admin") {
-    return res.status(403).json({ error: "Unauthorized" });
-  }
-
-  db.all(
-    "SELECT id, username, position, created_at FROM users ORDER BY id DESC",
-    [],
-    (err, rows) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json(rows);
-    }
-  );
+  db.all("SELECT id, username, position, status, created_at FROM users", 
+  (err, rows) => {
+    if (err) return res.status(500).send("Database error");
+    res.json(rows);
+  });
 });
 
 app.put("/auth/users/:id/status", (req, res) => {
-  if (req.headers.role !== "Admin")
-    return res.status(403).send("Unauthorized");
-
   const { id } = req.params;
   const { status } = req.body;
+  const role = req.headers.role;
+
+  if (role !== "Admin") {
+    return res.status(403).send("Unauthorized");
+  }
 
   db.run(
     "UPDATE users SET status = ? WHERE id = ?",
     [status, id],
     function (err) {
-      if (err) return res.status(500).send(err.message);
+      if (err) {
+        console.error(err);
+        return res.status(500).send("Database error");
+      }
+
+      if (this.changes === 0) {
+        return res.status(404).send("User not found");
+      }
+
       res.json({ message: "Status updated" });
     }
   );

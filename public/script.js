@@ -824,6 +824,78 @@ document.querySelectorAll('.modal').forEach(modalEl => {
   });
 });
 
+// Attach auto-save listener to status dropdowns
+document.querySelectorAll(".user-status").forEach(select => {
+  select.addEventListener("change", async function () {
+    const userId = this.dataset.id;
+    const newStatus = this.value;
+
+    try {
+      const res = await fetch(`${API.AUTH}/users/${userId}/status`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "role": currentUser.position
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (!res.ok) {
+        throw new Error(await res.text());
+      }
+
+      // ✅ PUT IT HERE (after successful update)
+      this.classList.add("border-success");
+      setTimeout(() => {
+        this.classList.remove("border-success");
+      }, 1000);
+
+    } catch (err) {
+      alert("Failed to update status");
+      console.error(err);
+
+      // revert dropdown if update fails
+      this.value = newStatus === "Active" ? "Inactive" : "Active";
+    }
+  });
+});
+
+// =====================================================
+// AUTO SAVE USER STATUS (Event Delegation)
+// =====================================================
+
+usersTableBody.addEventListener("change", async function (e) {
+  if (!e.target.classList.contains("user-status")) return;
+
+  const select = e.target;
+  const userId = select.dataset.id;
+  const newStatus = select.value;
+
+  try {
+    const res = await fetch(`${API.AUTH}/users/${userId}/status`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "role": currentUser.position
+      },
+      body: JSON.stringify({ status: newStatus })
+    });
+
+    if (!res.ok) throw new Error(await res.text());
+
+    // Optional success highlight
+    select.classList.add("border-success");
+    setTimeout(() => select.classList.remove("border-success"), 800);
+
+  } catch (err) {
+    alert("Failed to update status");
+    console.error(err);
+
+    // revert if failed
+    select.value = newStatus === "Active" ? "Inactive" : "Active";
+  }
+});
+
 // =====================================================
 // UPDATE USER STATUS (DROPDOWN)
 // =====================================================
