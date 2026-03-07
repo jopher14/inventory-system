@@ -510,21 +510,42 @@ function toggleSpecsRow(mainRow, item) {
 // <input id="name">, <input id="brand">, etc.
 
 function startEdit(item) {
-  const editModal = document.getElementById("editModal");
-  if (!editModal) return console.error("Edit modal not found");
+  editingItemId = item.id; // set editing mode
 
-  // Fill the modal inputs with the item data
-  editModal.querySelector("#name").value = item.name || "";
-  editModal.querySelector("#brand").value = item.brand || "";
-  editModal.querySelector("#serialNumber").value = item.serialNumber || "";
-  editModal.querySelector("#employeeUser").value = item.employeeUser || "";
+  // Fill basic fields
+  itemName.value = item.name || "";
+  itemBrand.value = item.brand || "";
+  itemSerialNumber.value = item.serialNumber || "";
+  itemDate.value = item.date_added || "";
+  employeeUser.value = item.employeeUser || "";
 
-  // Show the modal (Bootstrap example)
-  const modal = new bootstrap.Modal(editModal);
+  // Handle specs
+  if (item.hasSpecs) {
+    specsYes.checked = true;
+    specsNo.checked = false;
+
+    modelInput.value = item.model || "";
+    warrantyInput.value = item.warrantyExpiration || "";
+    cpuInput.value = item.cpu || "";
+    ramInput.value = item.ram || "";
+    storageInput.value = item.storage || "";
+  } else {
+    specsNo.checked = true;
+    specsYes.checked = false;
+  }
+
+  toggleSpecsFields();
+
+  // Change button text
+  submitBtn.textContent = "Update";
+
+  // Open modal
+  const modal = new bootstrap.Modal($("inventoryModal"));
   modal.show();
 }
 
-tableBody.addEventListener("click", (e) => {
+// Make the table click listener async
+tableBody.addEventListener("click", async (e) => {
   const btn = e.target.closest(".edit, .delete, .view-specs");
   if (!btn) return;
 
@@ -534,58 +555,38 @@ tableBody.addEventListener("click", (e) => {
   if (!item) return;
 
   if (btn.classList.contains("edit")) {
-
-    // Set editing mode
-    editingItemId = item.id;
-
-    // Fill basic fields
-    itemName.value = item.name || "";
-    itemBrand.value = item.brand || "";
-    itemSerialNumber.value = item.serialNumber || "";
-    itemDate.value = item.date_added || "";
-    employeeUser.value = item.employeeUser || "";
-
-    // Handle specs
-    if (item.hasSpecs) {
-      specsYes.checked = true;
-      specsNo.checked = false;
-
-      modelInput.value = item.model || "";
-      warrantyInput.value = item.warrantyExpiration || "";
-      cpuInput.value = item.cpu || "";
-      ramInput.value = item.ram || "";
-      storageInput.value = item.storage || "";
-    } else {
-      specsNo.checked = true;
-      specsYes.checked = false;
-    }
-
-    toggleSpecsFields();
-
-    // Change button text
-    submitBtn.textContent = "Update";
-
-    // Open existing modal
-    const modal = new bootstrap.Modal($("inventoryModal"));
-    modal.show();
+    startEdit(item);
   }
 
   if (btn.classList.contains("delete")) {
-    // Remove the main row
-    row.remove();
+    if (!confirm("Are you sure you want to delete this item?")) return;
 
-    // Also remove the specs row if it exists
-    const specsRow = row.nextElementSibling;
-    if (specsRow && specsRow.classList.contains("specs-row")) {
-      specsRow.remove();
+    try {
+      // Delete from backend
+      await api.send(`${API.ITEMS}/${itemId}`, "DELETE", {
+        deleted_by: currentUser.username
+      });
+
+      // Remove from local array
+      const index = items.findIndex(i => i.id === itemId);
+      if (index > -1) items.splice(index, 1);
+
+      // Remove the main row
+      row.remove();
+
+      // Remove specs row if open
+      const specsRow = row.nextElementSibling;
+      if (specsRow && specsRow.classList.contains("specs-row")) {
+        specsRow.remove();
+      }
+
+      // Re-render to fix pagination
+      renderInventory();
+
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete item");
     }
-
-    // Remove from items array if you store inventory there
-    const index = items.findIndex(i => i.id === itemId);
-    if (index > -1) items.splice(index, 1);
-
-    // Optionally re-render to update pagination
-    renderInventory();
   }
 
   if (btn.classList.contains("view-specs")) {

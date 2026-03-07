@@ -314,6 +314,28 @@ app.put("/items/:id", async (req, res) => {
   }
 });
 
+// ================= DELETE ITEM =================
+app.delete("/items/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { deleted_by } = req.body; // username from frontend
+
+    const item = await getQuery("SELECT * FROM inventory WHERE id = ?", [id]);
+    if (!item) {
+      return res.status(404).json({ error: "Item not found" });
+    }
+
+    await runQuery("DELETE FROM inventory WHERE id = ?", [id]);
+
+    logActivity("DELETE ITEM", deleted_by || "Unknown", `${item.name} (${item.serialNumber})`);
+
+    res.json({ message: "Item deleted successfully" });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ================= EXPORT CSV =================
 app.get("/items/export", async (req, res) => {
   try {
