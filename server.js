@@ -109,7 +109,7 @@ db.get("SELECT * FROM users WHERE username = ?", [DEFAULT_ADMIN.username], async
         } else {
           console.log("Default Admin created:");
           console.log("Username: admin");
-          console.log("Password: admin123");
+          console.log("Password: admin");
         }
       }
     );
@@ -169,11 +169,19 @@ app.post("/auth/login", async (req, res) => {
     const match = await bcrypt.compare(password, user.password);
     if (!match) return res.status(401).json({ error: "Invalid credentials" });
 
+    logActivity("LOGIN", username);
+
     res.json({ user });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
+
+// ================= ACTIVITY LOGGER =================
+function logActivity(action, user = "System", details = "") {
+  const time = new Date().toLocaleString();
+  console.log(`[${time}] ${user} -> ${action} ${details}`);
+}
 
 // =====================================================
 // GET ALL USERS
@@ -208,6 +216,8 @@ app.put("/auth/users/:id/status", (req, res) => {
         return res.status(404).send("User not found");
       }
 
+      logActivity("UPDATE USER STATUS", role, `User ID ${id} -> ${status}`);
+
       res.json({ message: "Status updated" });
     }
   );
@@ -240,6 +250,8 @@ app.post("/items", async (req, res) => {
       [name, brand, serialNumber, date_added, added_by, employeeUser || "Not yet assigned",
       hasSpecs ? 1 : 0, model, warrantyExpiration, cpu, ram, storage]
     );
+
+    logActivity("ADD ITEM", added_by, `${name} (${serialNumber})`);
 
     res.json({ message: "Item added" });
   } catch (err) {
@@ -294,6 +306,8 @@ app.put("/items/:id", async (req, res) => {
       ]
     );
 
+    logActivity("EDIT ITEM", edited_by, `${name} (${serialNumber})`);
+
     res.json({ message: "Item updated" });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -336,6 +350,9 @@ app.post("/requests", async (req, res) => {
        VALUES (?, ?, ?, ?, ?, ?)`,
       [item_name, brand, quantity, reason, requested_by, new Date().toISOString()]
     );
+
+    logActivity("REQUEST ITEM", requested_by, `${item_name} x${quantity}`);
+
     res.json({ message: "Request submitted" });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -354,6 +371,9 @@ app.put("/requests/:id", (req, res) => {
     [status, approved_by, req.params.id],
     function (err) {
       if (err) return res.status(400).json({ error: err.message });
+
+      logActivity(`REQUEST ${status}`, approved_by, `Request ID ${req.params.id}`);
+
       res.json({ message: "Request updated successfully" });
     }
   );
