@@ -9,6 +9,8 @@ const { Parser } = require("json2csv");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+let assetPrefix = "ASSET"; // default, can be updated by admin
+
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
@@ -183,6 +185,16 @@ function logActivity(action, user = "System", details = "") {
   console.log(`[${time}] ${user} -> ${action} ${details}`);
 }
 
+// Only admin can update this
+app.post("/config/asset-prefix", (req, res) => {
+  const { prefix, updated_by } = req.body;
+  if (!prefix) return res.status(400).json({ error: "Prefix required" });
+
+  assetPrefix = prefix.toUpperCase(); // optional: enforce uppercase
+  logActivity("UPDATE ASSET PREFIX", updated_by, `New prefix: ${prefix}`);
+  res.json({ message: "Asset prefix updated", prefix: assetPrefix });
+});
+
 // =====================================================
 // GET ALL USERS
 // =====================================================
@@ -243,17 +255,35 @@ app.post("/items", async (req, res) => {
     if (!name || !brand || !serialNumber || !date_added || !added_by)
       return res.status(400).json({ error: "Missing fields" });
 
+    // Generate Asset ID (ASSET-0001, ASSET-0002...)
+    const countResult = await allQuery("SELECT COUNT(*) as count FROM inventory");
+    const assetNumber = countResult[0].count + 1;
+    const assetId = `${assetPrefix}-${assetNumber.toString().padStart(4, "0")}`;
+
     await runQuery(
       `INSERT INTO inventory
-      (name, brand, serialNumber, date_added, added_by, employeeUser, hasSpecs, model, warrantyExpiration, cpu, ram, storage)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [name, brand, serialNumber, date_added, added_by, employeeUser || "Not yet assigned",
-      hasSpecs ? 1 : 0, model, warrantyExpiration, cpu, ram, storage]
+      (assetId, name, brand, serialNumber, date_added, added_by, employeeUser, hasSpecs, model, warrantyExpiration, cpu, ram, storage)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        assetId,
+        name,
+        brand,
+        serialNumber,
+        date_added,
+        added_by,
+        employeeUser || "Not yet assigned",
+        hasSpecs ? 1 : 0,
+        model,
+        warrantyExpiration,
+        cpu,
+        ram,
+        storage
+      ]
     );
 
     logActivity("ADD ITEM", added_by, `${name} (${serialNumber})`);
 
-    res.json({ message: "Item added" });
+    res.json({ message: "Item added", assetId }); // return assetId for frontend
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

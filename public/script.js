@@ -36,6 +36,10 @@ const prevPage = $("prev-page");
 const nextPage = $("next-page");
 const viewArchiveBtn = $("viewArchiveBtn");
 const backToRequestsBtn = $("backToRequestsBtn");
+const usersTableBody = document.getElementById("users-table-body");
+const viewUsersBtn = document.getElementById("viewUsersBtn");
+const assetPrefixInput = document.getElementById("asset-prefix-input");
+const updatePrefixBtn = document.getElementById("update-prefix-btn");
 
 // Auth Fields
 const authTitle = $("auth-title");
@@ -215,8 +219,18 @@ authBtn.addEventListener("click", async () => {
     welcomeUser.textContent = `Welcome, ${currentUser.username}!`;
     showInventory();
 
-    viewUsersBtn.style.display =
-      currentUser.position === "Admin" ? "inline-block" : "none";
+    // Admin controls visibility
+    if (roles.isAdmin()) {
+      document.getElementById("viewUsersBtn").classList.remove("d-none");
+      viewUsersBtn.style.display = "inline-block";
+      assetPrefixInput.style.display = "inline-block";
+      updatePrefixBtn.style.display = "inline-block";
+    } else {
+      document.getElementById("viewUsersBtn").classList.add("d-none");
+      viewUsersBtn.style.display = "none";
+      assetPrefixInput.style.display = "none";
+      updatePrefixBtn.style.display = "none";
+    }
 
     handleArchiveVisibility();
     handleAddItemVisibility();
@@ -443,6 +457,7 @@ const renderInventory = () => {
     tr.setAttribute("title", editedInfo);
 
     tr.innerHTML = `
+      <td>${item.assetId}</td>
       <td>${item.name}</td>
       <td>${item.brand}</td>
       <td>${item.serialNumber}</td>
@@ -775,10 +790,6 @@ document.addEventListener("DOMContentLoaded", () => {
 // =====================================================
 // VIEW USERS
 // =====================================================
-
-const usersTableBody = document.getElementById("users-table-body");
-const viewUsersBtn = document.getElementById("viewUsersBtn");
-
 viewUsersBtn?.addEventListener("click", loadUsers);
 
 async function loadUsers() {
@@ -999,3 +1010,14 @@ generateQRBtn.addEventListener("click", () => {
   });
 
 });
+
+
+async function updateAssetPrefix(newPrefix, adminUser) {
+  const res = await fetch("/config/asset-prefix", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ prefix: newPrefix, updated_by: adminUser })
+  });
+  const data = await res.json();
+  alert(data.message);
+}

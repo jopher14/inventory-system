@@ -43,10 +43,12 @@
 
       <div class="d-flex justify-content-between align-items-center mb-3">
         <span id="welcome-user" class="fw-bold"></span>
-        <div class="mb-3">
+        <div class="d-flex align-items-center gap-2">
           <button class="btn btn-info" id="viewUsersBtn" data-bs-toggle="modal" data-bs-target="#usersModal">
             <i class="bi bi-people"></i> View Users
           </button>
+          <input type="text" id="asset-prefix-input" class="form-control" placeholder="e.g., ASSET" style="max-width: 120px;">
+          <button class="btn btn-primary" id="update-prefix-btn">Update Prefix</button>
         </div>
         <button id="logout-btn" class="btn btn-danger btn-sm">Logout</button>
       </div>
@@ -170,6 +172,7 @@
         <table class="table table-hover align-middle">
           <thead class="table-dark">
             <tr>
+              <th>Asset ID</th>
               <th style="cursor:pointer" data-sort="name">Name <span class="sort-arrow"></span></th>
               <th style="cursor:pointer" data-sort="brand">Brand <span class="sort-arrow"></span></th>
               <th>Serial</th>
