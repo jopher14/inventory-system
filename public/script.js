@@ -415,14 +415,16 @@ const renderInventory = () => {
     const tr = document.createElement("tr");
     tr.dataset.itemId = item.id;
 
-    const actions = roles.canEditItem(item) ? `
-      <button class="btn btn-sm btn-warning edit" title="Edit">
-        <i class="bi bi-pencil-fill"></i>
-      </button>
-      <button class="btn btn-sm btn-danger delete" title="Delete">
-        <i class="bi bi-trash-fill"></i>
-      </button>
-    ` : "";
+    const actions = `
+    ${roles.canEditItem(item) ? `
+    <button class="btn btn-sm btn-warning edit">
+    <i class="bi bi-pencil-fill"></i>
+    </button>
+    <button class="btn btn-sm btn-danger delete">
+    <i class="bi bi-trash-fill"></i>
+    </button>
+    ` : ""}
+    `;
 
     const specsButton = item.hasSpecs ? `
       <button class="btn btn-sm btn-info view-specs" title="View Specs">
@@ -447,10 +449,27 @@ const renderInventory = () => {
       <td>${item.date_added}</td>
       <td>${item.added_by}</td>
       <td>${item.employeeUser || ""}</td>
+      <td>
+        <img id="qr-${item.id}" style="width:60px;height:60px;">
+      </td>
       <td class="text-nowrap">${specsButton}${actions}</td>
     `;
 
     tableBody.appendChild(tr);
+
+    const qrImg = document.getElementById(`qr-${item.id}`);
+
+    const qrData = JSON.stringify({
+      id: item.id,
+      serial: item.serialNumber,
+      name: item.name
+    });
+
+    QRCode.toDataURL(qrData, { width: 60 }, function (err, url) {
+      if (!err && qrImg) {
+        qrImg.src = url;
+      }
+    });
   });
 
   pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
@@ -942,4 +961,41 @@ document.querySelectorAll('.modal').forEach(modalEl => {
     const trigger = document.querySelector(triggerSelector);
     if (trigger) trigger.focus();
   });
+});
+
+
+// =====================================================
+// GENERATE QRCODE FOR ALL ITEM
+// =====================================================
+const generateQRBtn = document.getElementById("generateAllQR");
+
+generateQRBtn.addEventListener("click", () => {
+
+  const filtered = getFilteredItems();
+  const sorted = sortItems(filtered);
+
+  const pageItems = sorted.slice(
+    (currentPage - 1) * ROWS_PER_PAGE,
+    currentPage * ROWS_PER_PAGE
+  );
+
+  pageItems.forEach(item => {
+
+    const qrImg = document.getElementById(`qr-${item.id}`);
+    if (!qrImg) return;
+
+    const qrData = JSON.stringify({
+      id: item.id,
+      name: item.name,
+      serial: item.serialNumber
+    });
+
+    QRCode.toDataURL(qrData, { width: 60 }, function (err, url) {
+      if (!err) {
+        qrImg.src = url;
+      }
+    });
+
+  });
+
 });

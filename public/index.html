@@ -56,6 +56,9 @@
         <div class="d-flex gap-2">
           <input id="search" class="form-control" placeholder="Search..." />
           <button id="export-csv" class="btn btn-outline-primary">Export</button>
+          <button id="generateAllQR" class="btn btn-primary">
+            Generate All QR Codes
+          </button>
         </div>
       </div>
 
@@ -173,6 +176,7 @@
               <th style="cursor:pointer" data-sort="date">Date <span class="sort-arrow"></span></th>
               <th>Added By</th>
               <th>Employee User</th>
+              <th>QR</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -332,6 +336,13 @@
       </div>
     </div>
   </div>
+
+  <!-- QRCode Generator  -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+
+  <!-- QR Scanner -->
+  <script src="https://unpkg.com/html5-qrcode"></script>
 
   <!-- Scripts -->
   <script src="script.js" defer></script>
