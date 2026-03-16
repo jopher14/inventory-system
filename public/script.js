@@ -16,6 +16,7 @@ let editingItemId = null;
 let currentPage = 1;
 let isLogin = true;
 let currentSortKey = null; // "name" or "date"
+let currentPrefix = "ASSET"
 
 // =====================================================
 // ELEMENT SELECTORS
@@ -88,7 +89,7 @@ const api = {
       const res = await fetch(url, {
         headers: {
           "Content-Type": "application/json",
-          "role": currentUser?.position || ""  // 👈 send role automatically
+          "role": currentUser?.position || ""
         }
       });
 
@@ -188,6 +189,78 @@ usersModal.addEventListener("hidden.bs.modal", function () {
   if (usersModal.contains(focused)) focused.blur();
   if (viewUsersBtn) viewUsersBtn.focus();
 })
+// ===========================================
+// LOAD PREFIX FROM SERVER
+// ===========================================
+const loadAssetPrefix = async () => {
+  try {
+    const res = await fetch("/config/asset-prefix");
+    const data = await res.json();
+    currentPrefix = data.prefix || "ASSET";
+  } catch (err) {
+    console.error("Failed to load prefix:", err);
+  }
+};
+
+// ===========================================
+// GENERATE NEXT ASSET ID
+// ===========================================
+const generateAssetId = () => {
+
+  const numbers = items
+    .map(item => {
+      if (!item.assetId) return null;
+
+      if (!item.assetId.startsWith(currentPrefix)) return null;
+
+      return parseInt(item.assetId.replace(currentPrefix, ""), 10);
+    })
+    .filter(n => !isNaN(n));
+
+  const nextNumber = numbers.length
+    ? Math.max(...numbers) + 1
+    : 1;
+
+  return `${currentPrefix}${String(nextNumber).padStart(3, "0")}`;
+};
+
+// ===========================================
+// UPDATE PREFIX (ADMIN)
+// ===========================================
+const updatePrefix = async () => {
+
+  const prefixInput = document.getElementById("asset-prefix-input");
+  const prefix = prefixInput.value.trim().toUpperCase();
+
+  if (!prefix) {
+    alert("Prefix is required");
+    return;
+  }
+
+  try {
+
+    const res = await fetch("/config/asset-prefix", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        prefix: prefix,
+        updated_by: currentUser?.username || "admin"
+      })
+    });
+
+    const data = await res.json();
+
+    if (data.prefix) {
+      currentPrefix = data.prefix;
+      alert(`Prefix updated to ${currentPrefix}`);
+    }
+
+  } catch (err) {
+    console.error("Prefix update failed:", err);
+  }
+};
 
 // =====================================================
 // AUTHENTICATION (LOGIN ONLY)
@@ -234,6 +307,7 @@ authBtn.addEventListener("click", async () => {
 
     handleArchiveVisibility();
     handleAddItemVisibility();
+    await loadAssetPrefix();
     await fetchInventory();
     await fetchRequests();
 
@@ -334,6 +408,7 @@ form.addEventListener("submit", async e => {
 
   const hasSpecs = specsYes.checked;
   const data = {
+    assetId: generateAssetId(),
     name: itemName.value.trim(),
     brand: itemBrand.value.trim(),
     serialNumber: itemSerialNumber.value.trim(),
@@ -457,7 +532,7 @@ const renderInventory = () => {
     tr.setAttribute("title", editedInfo);
 
     tr.innerHTML = `
-      <td>${item.assetId}</td>
+      <td>${item.assetId || generateAssetId()}</td>
       <td>${item.name}</td>
       <td>${item.brand}</td>
       <td>${item.serialNumber}</td>
@@ -643,7 +718,7 @@ exportBtn.addEventListener("click", () => {
 
     // Build CSV
     const csv = [];
-    csv.push(["Name","Brand","Serial","Date Added","Added By","Employee User"].join(",")); // header
+    csv.push(["Asset ID", "Name","Brand","Serial","Date Added","Added By","Employee User"].join(",")); // header
 
     rows.forEach(tr => {
       const cols = Array.from(tr.querySelectorAll("td")).slice(0,6); // skip Actions column

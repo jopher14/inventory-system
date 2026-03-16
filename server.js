@@ -37,6 +37,7 @@ db.serialize(() => {
   db.run(`
     CREATE TABLE IF NOT EXISTS inventory (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      assetId TEXT UNIQUE,
       name TEXT,
       brand TEXT,
       serialNumber TEXT UNIQUE,
@@ -83,6 +84,14 @@ db.serialize(() => {
     )
   `);
 });
+
+db.run(`
+  CREATE TABLE IF NOT EXISTS settings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    key TEXT UNIQUE NOT NULL,
+    value TEXT
+  )
+`);
 
 // =====================================================
 // CREATE DEFAULT ADMIN (IF NOT EXISTS)
@@ -185,14 +194,64 @@ function logActivity(action, user = "System", details = "") {
   console.log(`[${time}] ${user} -> ${action} ${details}`);
 }
 
-// Only admin can update this
-app.post("/config/asset-prefix", (req, res) => {
+// =======================================
+// ASSET PREFIX CONFIG
+// =======================================
+
+db.get("SELECT value FROM settings WHERE key = 'assetPrefix'", [], (err, row) => {
+  if (err) return console.error("Settings query error:", err);
+
+  if (!row) {
+    db.run(
+      "INSERT INTO settings (key, value) VALUES (?, ?)",
+      ["assetPrefix", assetPrefix],
+      (err) => {
+        if (err) console.error("Error inserting default assetPrefix:", err);
+        else console.log("Default assetPrefix set in settings table:", assetPrefix);
+      }
+    );
+  } else {
+    assetPrefix = row.value; // update the variable from DB
+  }
+});
+
+// GET current prefix
+app.get("/config/asset-prefix", (req, res) => {
+  res.json({
+    success: true,
+    prefix: assetPrefix
+  });
+});
+
+// UPDATE prefix (admin only)
+app.post("/config/asset-prefix", async (req, res) => {
   const { prefix, updated_by } = req.body;
+
   if (!prefix) return res.status(400).json({ error: "Prefix required" });
 
-  assetPrefix = prefix.toUpperCase(); // optional: enforce uppercase
-  logActivity("UPDATE ASSET PREFIX", updated_by, `New prefix: ${prefix}`);
-  res.json({ message: "Asset prefix updated", prefix: assetPrefix });
+  const upperPrefix = prefix.trim().toUpperCase();
+
+  try {
+    // Update in DB
+    await runQuery(
+      `INSERT INTO settings (key, value) 
+       VALUES (?, ?)
+       ON CONFLICT(key) DO UPDATE SET value=excluded.value`,
+      ["assetPrefix", upperPrefix]
+    );
+
+    assetPrefix = upperPrefix; // optional, update in memory
+
+    logActivity("UPDATE ASSET PREFIX", updated_by || "unknown", `New prefix: ${upperPrefix}`);
+
+    res.json({
+      success: true,
+      message: "Asset prefix updated",
+      prefix: upperPrefix
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // =====================================================
@@ -252,39 +311,66 @@ app.post("/items", async (req, res) => {
       hasSpecs, model, warrantyExpiration, cpu, ram, storage
     } = req.body;
 
-    if (!name || !brand || !serialNumber || !date_added || !added_by)
-      return res.status(400).json({ error: "Missing fields" });
+    if (!name || !brand || !serialNumber || !date_added || !added_by) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
 
-    // Generate Asset ID (ASSET-0001, ASSET-0002...)
-    const countResult = await allQuery("SELECT COUNT(*) as count FROM inventory");
-    const assetNumber = countResult[0].count + 1;
-    const assetId = `${assetPrefix}-${assetNumber.toString().padStart(4, "0")}`;
+    // Get the current assetPrefix set by admin
+    const prefixResult = await getQuery(
+      "SELECT value FROM settings WHERE key = 'assetPrefix' LIMIT 1"
+    );
 
-    await runQuery(
+    if (!prefixResult) return res.status(400).json({ error: "Asset prefix not set by admin" });
+
+    const assetPrefix = prefixResult.value;
+
+    // Optional: check for duplicate serial number
+    const existingSerial = await allQuery(
+      "SELECT id FROM inventory WHERE serialNumber = ?",
+      [serialNumber]
+    );
+    if (existingSerial.length > 0) {
+      return res.status(400).json({ error: "Serial number already exists" });
+    }
+
+    // Get last number for this prefix
+    const lastAsset = await allQuery(
+      `SELECT assetId FROM inventory WHERE assetId LIKE ? ORDER BY id DESC LIMIT 1`,
+      [`${assetPrefix}%`]
+    );
+
+    let nextNumber = 1;
+    if (lastAsset.length > 0) {
+      const lastId = lastAsset[0].assetId;
+      const match = lastId.match(/\d+$/);
+      if (match) nextNumber = parseInt(match[0], 10) + 1;
+    }
+
+    const assetId = `${assetPrefix}${nextNumber.toString().padStart(3, "0")}`;
+
+    // Insert the new item
+    const result = await runQuery(
       `INSERT INTO inventory
       (assetId, name, brand, serialNumber, date_added, added_by, employeeUser, hasSpecs, model, warrantyExpiration, cpu, ram, storage)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        assetId,
-        name,
-        brand,
-        serialNumber,
-        date_added,
-        added_by,
+        assetId, name, brand, serialNumber, date_added, added_by,
         employeeUser || "Not yet assigned",
         hasSpecs ? 1 : 0,
-        model,
-        warrantyExpiration,
-        cpu,
-        ram,
-        storage
+        model || null,
+        warrantyExpiration || null,
+        cpu || null,
+        ram || null,
+        storage || null
       ]
     );
 
     logActivity("ADD ITEM", added_by, `${name} (${serialNumber})`);
 
-    res.json({ message: "Item added", assetId }); // return assetId for frontend
+    res.json({ message: "Item added", assetId });
+
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: err.message });
   }
 });
