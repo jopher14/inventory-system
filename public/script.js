@@ -540,7 +540,7 @@ const renderInventory = () => {
       <td>${item.added_by}</td>
       <td>${item.employeeUser || ""}</td>
       <td>
-        <img id="qr-${item.id}" style="width:60px;height:60px;">
+        <img id="qr-${item.id}" style="width:120px;height:120px;">
       </td>
       <td class="text-nowrap">${specsButton}${actions}</td>
     `;
@@ -549,13 +549,12 @@ const renderInventory = () => {
 
     const qrImg = document.getElementById(`qr-${item.id}`);
 
-    const qrData = JSON.stringify({
-      id: item.id,
-      serial: item.serialNumber,
-      name: item.name
-    });
+    const qrData =
+    `Asset ID: ${item.assetId}
+    Name: ${item.name}
+    Serial: ${item.serialNumber}`;
 
-    QRCode.toDataURL(qrData, { width: 60 }, function (err, url) {
+    QRCode.toDataURL(qrData, { width: 200, errorCorrectionLevel: "H" }, function (err, url) {
       if (!err && qrImg) {
         qrImg.src = url;
       }
@@ -1070,11 +1069,10 @@ generateQRBtn.addEventListener("click", () => {
     const qrImg = document.getElementById(`qr-${item.id}`);
     if (!qrImg) return;
 
-    const qrData = JSON.stringify({
-      id: item.id,
-      name: item.name,
-      serial: item.serialNumber
-    });
+    const qrData =
+      `Asset ID: ${item.assetId}
+      Name: ${item.name}
+      Serial: ${item.serialNumber}`;
 
     QRCode.toDataURL(qrData, { width: 60 }, function (err, url) {
       if (!err) {
