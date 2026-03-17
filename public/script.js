@@ -41,6 +41,7 @@ const usersTableBody = document.getElementById("users-table-body");
 const viewUsersBtn = document.getElementById("viewUsersBtn");
 const assetPrefixInput = document.getElementById("asset-prefix-input");
 const updatePrefixBtn = document.getElementById("update-prefix-btn");
+const generateQRBtn = document.getElementById("generateAllQR");
 
 // Auth Fields
 const authTitle = $("auth-title");
@@ -554,6 +555,8 @@ const renderInventory = () => {
     Name: ${item.name}
     Serial: ${item.serialNumber}`;
 
+    console.log("QR VALUE:", qrData);
+
     QRCode.toDataURL(qrData, { width: 200, errorCorrectionLevel: "H" }, function (err, url) {
       if (!err && qrImg) {
         qrImg.src = url;
@@ -1052,45 +1055,122 @@ document.querySelectorAll('.modal').forEach(modalEl => {
 // =====================================================
 // GENERATE QRCODE FOR ALL ITEM
 // =====================================================
-const generateQRBtn = document.getElementById("generateAllQR");
-
-generateQRBtn.addEventListener("click", () => {
-
-  const filtered = getFilteredItems();
-  const sorted = sortItems(filtered);
-
-  const pageItems = sorted.slice(
-    (currentPage - 1) * ROWS_PER_PAGE,
-    currentPage * ROWS_PER_PAGE
-  );
-
-  pageItems.forEach(item => {
-
+function renderAllQRCodes(items) {
+  items.forEach(async (item) => {
     const qrImg = document.getElementById(`qr-${item.id}`);
     if (!qrImg) return;
 
-    const qrData =
-      `Asset ID: ${item.assetId}
-      Name: ${item.name}
-      Serial: ${item.serialNumber}`;
+    const qrData = `${item.assetId}|${item.serialNumber}`;
 
-    QRCode.toDataURL(qrData, { width: 60 }, function (err, url) {
-      if (!err) {
-        qrImg.src = url;
-      }
-    });
+    try {
+      const url = await QRCode.toDataURL(qrData, {
+        width: 150,
+        margin: 1,
+        errorCorrectionLevel: "H"
+      });
 
+      qrImg.src = url;
+
+    } catch (err) {
+      console.error("QR render error:", err);
+    }
   });
+}
 
+function exportToCSV(data) {
+  const headers = ["Asset ID", "Serial Number", "QR Code"];
+
+  const rows = data.map(row =>
+    [
+      `"${row.assetId}"`,
+      `"${row.serialNumber}"`,
+      `"${row.qrCode}"` // wrap in quotes to prevent CSV breaking
+    ].join(",")
+  );
+
+  const csvContent =
+    headers.join(",") + "\n" + rows.join("\n");
+
+  const blob = new Blob([csvContent], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "inventory_qrcodes.csv";
+  a.click();
+
+  URL.revokeObjectURL(url);
+}
+
+generateQRBtn.addEventListener("click", async () => {
+  const filtered = getFilteredItems();
+  const sorted = sortItems(filtered);
+
+  const zip = new JSZip();
+
+  for (const item of sorted) {
+    const qrData = `${item.assetId}|${item.serialNumber}`;
+
+    try {
+      const base64 = await QRCode.toDataURL(qrData, {
+        width: 300, // higher = better scan quality
+        margin: 2,
+        errorCorrectionLevel: "H"
+      });
+
+      // ✅ Show in table (optional)
+      const qrImg = document.getElementById(`qr-${item.id}`);
+      if (qrImg) qrImg.src = base64;
+
+      // ✅ Convert base64 → file
+      const base64Data = base64.split(",")[1];
+
+      // filename: TDH001.png
+      const fileName = `${item.assetId || "NO_ID"}.png`;
+
+      zip.file(fileName, base64Data, { base64: true });
+
+    } catch (err) {
+      console.error("QR error:", err);
+    }
+  }
+
+  // ✅ Generate ZIP
+  const content = await zip.generateAsync({ type: "blob" });
+
+  // ✅ Download ZIP
+  const a = document.createElement("a");
+  const url = URL.createObjectURL(content);
+
+  a.href = url;
+  a.download = "QR_CODES.zip";
+  a.click();
+
+  URL.revokeObjectURL(url);
 });
 
+// =====================================================
+// SCAN THE QRCODE
+// =====================================================
 
-async function updateAssetPrefix(newPrefix, adminUser) {
-  const res = await fetch("/config/asset-prefix", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ prefix: newPrefix, updated_by: adminUser })
-  });
-  const data = await res.json();
-  alert(data.message);
+function onScanSuccess(decodedText) {
+  console.log("Scanned QR:", decodedText);
+
+  // Split your format
+  const [assetId, serial] = decodedText.split("|");
+
+  console.log("Asset ID:", assetId);
+  console.log("Serial:", serial);
+
+  alert(`Asset: ${assetId}\nSerial: ${serial}`);
+
+  // OPTIONAL: auto search
+  searchInput.value = assetId;
+  renderInventory();
 }
+
+html5QrCode.start(
+  { facingMode: "environment" },
+  { fps: 10, qrbox: 250 },
+  onScanSuccess
+);
