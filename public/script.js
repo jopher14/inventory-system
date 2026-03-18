@@ -452,12 +452,30 @@ form.addEventListener("submit", async e => {
 // RENDER INVENTORY (WITH DELEGATED BUTTONS + SPECS TOGGLE)
 // =====================================================
 const getFilteredItems = () => {
-  const search = searchInput.value.toLowerCase();
-  return items.filter(i =>
-    i.name?.toLowerCase().includes(search) ||
-    i.brand?.toLowerCase().includes(search) ||
-    i.serialNumber?.toLowerCase().includes(search)
-  );
+  const search = searchInput.value.toLowerCase().trim().replace(/\n/g, "");
+
+  return items.filter(i => {
+
+    const name = i.name?.toLowerCase() || "";
+    const brand = i.brand?.toLowerCase() || "";
+    const serial = i.serialNumber?.toLowerCase() || "";
+    const assetId = i.assetId?.toLowerCase() || "";
+    const combined = `${i.assetId}|${i.serialNumber}`.toLowerCase();
+
+    // 🔹 Normal search (works for ALL roles)
+    const normalMatch =
+      name.includes(search) ||
+      brand.includes(search) ||
+      serial.includes(search) ||
+      assetId.includes(search);
+
+    // 🔹 Extra search ONLY for audit role
+    if (roles.isAudit()) {
+      return normalMatch || combined.includes(search);
+    }
+
+    return normalMatch;
+  });
 };
 
 const sortItems = (items) => {
