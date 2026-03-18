@@ -306,7 +306,6 @@ authBtn.addEventListener("click", async () => {
       updatePrefixBtn.style.display = "none";
     }
 
-    handleArchiveVisibility();
     handleAddItemVisibility();
     await loadAssetPrefix();
     await fetchInventory();
@@ -831,6 +830,7 @@ requestTableBody.addEventListener("click", async e => {
 
 requestForm.addEventListener("submit", async e => {
   e.preventDefault();
+
   const data = {
     item_name: $("req-item-name").value.trim(),
     brand: $("req-brand").value.trim(),
@@ -838,34 +838,29 @@ requestForm.addEventListener("submit", async e => {
     reason: $("req-reason").value.trim(),
     requested_by: currentUser.username,
   };
+
   if (Object.values(data).some(v => !v)) return alert("All fields required");
+
   await api.send(API.REQUESTS, "POST", data);
+
   requestForm.reset();
-  closeModal("requestModal");
   fetchRequests();
 });
 
-// =====================================================
-// ARCHIVE
-// =====================================================
-const handleArchiveVisibility = () => {
-  viewArchiveBtn.classList.toggle(
-    "d-none",
-    roles.isAudit() || roles.isSupervisor);
-  backToRequestsBtn.classList.add("d-none");
-};
+// Switch to table tab after submit
+const tableTabBtn = document.querySelector('[data-bs-target="#requestTableTab"]');
 
-viewArchiveBtn.addEventListener("click", async () => {
-  renderRequests(await api.get(API.ARCHIVE) || []);
-  viewArchiveBtn.classList.add("d-none");
-  backToRequestsBtn.classList.remove("d-none");
+if (tableTabBtn) {
+  const tab = new bootstrap.Tab(tableTabBtn);
+  tab.show();
+}
+
+const requestModal = $("requestModal");
+
+requestModal?.addEventListener("shown.bs.modal", async () => {
+  await fetchRequests();
 });
 
-backToRequestsBtn.addEventListener("click", () => {
-  fetchRequests();
-  viewArchiveBtn.classList.remove("d-none");
-  backToRequestsBtn.classList.add("d-none");
-});
 
 // =====================================================
 // SPECS TOGGLE
@@ -1078,7 +1073,7 @@ function renderAllQRCodes(items) {
     const qrImg = document.getElementById(`qr-${item.id}`);
     if (!qrImg) return;
 
-    const qrData = `${item.assetId}|${item.serialNumber}`;
+    const qrData = `${item.assetId}|${item.serialNumber}\n`;
 
     try {
       const url = await QRCode.toDataURL(qrData, {
@@ -1167,28 +1162,3 @@ generateQRBtn.addEventListener("click", async () => {
   URL.revokeObjectURL(url);
 });
 
-// =====================================================
-// SCAN THE QRCODE
-// =====================================================
-
-function onScanSuccess(decodedText) {
-  console.log("Scanned QR:", decodedText);
-
-  // Split your format
-  const [assetId, serial] = decodedText.split("|");
-
-  console.log("Asset ID:", assetId);
-  console.log("Serial:", serial);
-
-  alert(`Asset: ${assetId}\nSerial: ${serial}`);
-
-  // OPTIONAL: auto search
-  searchInput.value = assetId;
-  renderInventory();
-}
-
-html5QrCode.start(
-  { facingMode: "environment" },
-  { fps: 10, qrbox: 250 },
-  onScanSuccess
-);
