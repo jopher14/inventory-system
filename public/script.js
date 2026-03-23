@@ -1115,50 +1115,103 @@ function exportToCSV(data) {
   URL.revokeObjectURL(url);
 }
 
-generateQRBtn.addEventListener("click", async () => {
-  const filtered = getFilteredItems();
-  const sorted = sortItems(filtered);
-
-  const zip = new JSZip();
-
-  for (const item of sorted) {
-    const qrData = `${item.assetId}|${item.serialNumber}`;
-
-    try {
-      const base64 = await QRCode.toDataURL(qrData, {
-        width: 300, // higher = better scan quality
-        margin: 2,
-        errorCorrectionLevel: "H"
-      });
-
-      // ✅ Show in table (optional)
-      const qrImg = document.getElementById(`qr-${item.id}`);
-      if (qrImg) qrImg.src = base64;
-
-      // ✅ Convert base64 → file
-      const base64Data = base64.split(",")[1];
-
-      // filename: TDH001.png
-      const fileName = `${item.assetId || "NO_ID"}.png`;
-
-      zip.file(fileName, base64Data, { base64: true });
-
-    } catch (err) {
-      console.error("QR error:", err);
-    }
-  }
-
-  // ✅ Generate ZIP
-  const content = await zip.generateAsync({ type: "blob" });
-
-  // ✅ Download ZIP
-  const a = document.createElement("a");
-  const url = URL.createObjectURL(content);
-
-  a.href = url;
-  a.download = "QR_CODES.zip";
-  a.click();
-
-  URL.revokeObjectURL(url);
+generateQRBtn.addEventListener("click", () => {
+  window.open("/items/export-qr-excel", "_blank");
 });
 
+// generateQRBtn.addEventListener("click", async () => {
+//   const filtered = getFilteredItems();
+//   const sorted = sortItems(filtered);
+
+//   const workbook = new ExcelJS.Workbook();
+//   const sheet = workbook.addWorksheet("QR Codes");
+
+//   const cols = 5;
+//   const maxItems = 50; // 5 x 10
+
+//   // ✅ A4 PRINT SETUP
+//   sheet.pageSetup = {
+//     paperSize: 9, // A4
+//     orientation: "portrait",
+//     fitToPage: true,
+//     fitToWidth: 1,
+//     fitToHeight: 1,
+//     margins: {
+//       left: 0.25,
+//       right: 0.25,
+//       top: 0.3,
+//       bottom: 0.3
+//     }
+//   };
+
+//   for (let i = 0; i < sorted.length && i < maxItems; i++) {
+//     const item = sorted[i];
+
+//     const rowIndex = Math.floor(i / cols) * 3 + 1;
+//     const colIndex = (i % cols) + 1;
+
+//     const qrData = `${item.assetId}|${item.serialNumber}`;
+
+//     try {
+//       const base64 = await QRCode.toDataURL(qrData, {
+//         width: 300,
+//         margin: 1,
+//         errorCorrectionLevel: "H"
+//       });
+
+//       // 🔥 VERY IMPORTANT: keep full base64 string
+//       const imageId = workbook.addImage({
+//         base64: base64,
+//         extension: "png"
+//       });
+
+//       // 🔥 USE THIS FORMAT (more reliable in browser)
+//       sheet.addImage(imageId, {
+//         tl: { col: colIndex - 1, row: rowIndex - 1 },
+//         br: { col: colIndex, row: rowIndex }
+//       });
+
+//       // Row height
+//       sheet.getRow(rowIndex).height = 90;
+
+//       // Label
+//       const labelCell = sheet.getCell(rowIndex + 1, colIndex);
+//       labelCell.value = item.assetId;
+//       labelCell.alignment = { horizontal: "center" };
+
+//     } catch (err) {
+//       console.error("QR error:", err);
+//     }
+//   }
+
+//     // ✅ COLUMN WIDTH (balanced for A4)
+//     for (let i = 1; i <= cols; i++) {
+//       sheet.getColumn(i).width = 21;
+//     }
+
+//     // ✅ ALIGN ALL CELLS CENTER
+//     sheet.eachRow(row => {
+//       row.eachCell(cell => {
+//         cell.alignment = {
+//           horizontal: "center",
+//           vertical: "middle"
+//         };
+//       });
+//     });
+
+//   // ✅ DOWNLOAD FILE
+//   const buffer = await workbook.xlsx.writeBuffer();
+
+//   const blob = new Blob([buffer], {
+//     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+//   });
+
+//   const url = URL.createObjectURL(blob);
+
+//   const a = document.createElement("a");
+//   a.href = url;
+//   a.download = "QR_CODES_PRINT_READY.xlsx";
+//   a.click();
+
+//   URL.revokeObjectURL(url);
+// });

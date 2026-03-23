@@ -497,6 +497,85 @@ app.post("/requests", async (req, res) => {
   }
 });
 
+const ExcelJS = require("exceljs");
+const QRCode = require("qrcode");
+
+app.get("/items/export-qr-excel", async (req, res) => {
+  try {
+    const items = await allQuery("SELECT * FROM inventory ORDER BY id DESC");
+
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet("QR Codes");
+
+    const cols = 3; // 🔥 3 per row (fits A4 nicely)
+
+    // 📄 PRINT SETTINGS (A4 READY)
+    sheet.pageSetup = {
+      paperSize: 9, // A4
+      orientation: "portrait",
+      fitToPage: true,
+      fitToWidth: 1,
+      fitToHeight: 1
+    };
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+
+      const rowIndex = Math.floor(i / cols) * 4 + 1; // 🔥 consistent block
+      const colIndex = (i % cols) + 1;
+
+      const qrData = `${item.assetId}|${item.serialNumber}`;
+      const base64 = await QRCode.toDataURL(qrData);
+
+      const imageId = workbook.addImage({
+        base64,
+        extension: "png"
+      });
+
+      // 🖼️ CENTERED QR inside its column
+      sheet.addImage(imageId, {
+        tl: { col: colIndex - 1 + 0.5, row: rowIndex - 1 }, // 🔥 horizontal centering
+        ext: { width: 100, height: 100 }
+      });
+
+      // 📏 FIXED ROW HEIGHTS (important!)
+      sheet.getRow(rowIndex).height = 75;     // QR space
+      sheet.getRow(rowIndex + 1).height = 20; // label space
+
+      // 🏷️ LABEL (directly under QR)
+      const labelCell = sheet.getCell(rowIndex + 2, colIndex);
+      labelCell.value = item.assetId;
+      labelCell.alignment = {
+        horizontal: "center",
+        vertical: "middle"
+      };
+      labelCell.font = { bold: true, size: 12 };
+    }
+
+    // 📐 COLUMN WIDTH
+    for (let i = 1; i <= cols; i++) {
+      sheet.getColumn(i).width = 25;
+    }
+
+    // 📥 DOWNLOAD
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader(
+      "Content-Disposition",
+      "attachment; filename=QR_CODES.xlsx"
+    );
+
+    await workbook.xlsx.write(res);
+    res.end();
+
+  } catch (err) {
+    console.error("QR Export Error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.put("/requests/:id", (req, res) => {
   const { status, approved_by } = req.body;
 
